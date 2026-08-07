@@ -1,0 +1,85 @@
+# Deterministic pull request hygiene (#49). Part of the parity mapping in #47,
+# where the target requires `Deterministic PR-hygiene checks`. The mechanism
+# carries over from the target unchanged; the rules it enforces are per
+# repository, which is why the check name is the same and the contents are not.
+#
+# WHAT THIS CHECKS, all of it decidable by reading and none of it a matter of
+# taste. The rules and their refusal identifiers live in
+# .github/scripts/pr-hygiene.sh, with the reason for each one written beside it:
+#
+#   body-names-no-issue          the body carries no #<number> reference
+#   title-is-empty               the title is empty or whitespace
+#   title-is-the-branch-name     the title is the branch name in the spelling
+#                                GitHub proposes when nobody typed one
+#   head-is-the-default-branch   the pull request is opened from a branch named
+#                                the same as the default branch
+#
+# WHAT THIS DELIBERATELY DOES NOT CHECK, written here beside what it does so
+# that a reviewer does not assume it was covered:
+#
+#   Whether the body is any good, whether the change is the right size, and
+#   whether the reasoning is sound. Those are what a review is for. A check that
+#   pretended to cover them would let a reviewer assume they had been covered.
+#
+#   Whether the issue the body names exists, is open, or has anything to do with
+#   the change. Deciding that needs a judgement about meaning, and a check that
+#   made one would be argued with until it was turned off.
+#
+#   The coupling #49 also asks for, that a change touching the catalogue must
+#   touch the verification results and the other way round. It is not
+#   implemented, and it is not implemented because the path of the result file
+#   is decided by #34 and that issue is open. A rule keyed to a path nobody has
+#   chosen yet would be a rule that is wrong on the day the path lands. This
+#   omission is the reason #49 is not closed by the change that added this file.
+#
+# The self-test step runs first and reds the job when a rule has stopped
+# refusing what it names. A hygiene check that has quietly stopped refusing
+# looks exactly like a repository whose pull requests are all well formed, which
+# is the failure this workflow is most likely to have and the least likely to
+# notice.
+name: PR hygiene
+
+on:
+  pull_request:
+    # `edited` is in the list because the title and the body are what most of
+    # these rules read, and both are edited after opening. Without it a pull
+    # request opened badly and fixed afterwards keeps its red check, and one
+    # opened well and edited badly keeps its green one.
+    types: [opened, edited, synchronize, reopened]
+
+# Read-only: the check reads the event payload and the checked-out scripts, and
+# writes nothing anywhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same pull request. Re-running is cheap and the
+# verdict depends only on the current title, body and branch.
+concurrency:
+  group: pr-hygiene-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: Deterministic PR-hygiene checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Prove the rules bite before applying them
+        run: bash .github/scripts/pr-hygiene-selftest.sh
+
+      - name: Check this pull request
+        # The title and the body are attacker-controlled text. They are passed
+        # through the environment and never interpolated into the shell, so a
+        # title containing shell metacharacters is data rather than a command.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash .github/scripts/pr-hygiene.sh
