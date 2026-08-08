@@ -1,0 +1,102 @@
+# CodeQL - semantic security analysis of this repository's own code.
+#
+# Built for #48, against the mapping in docs/quality-parity.md. The target's
+# `CodeQL` and `Analyze (csharp)` become `CodeQL` and `Analyze (python)` here,
+# and `Analyze (actions)` is kept because this repository has workflows worth
+# analysing.
+#
+# The languages are declared explicitly in the matrix below rather than left to
+# be inferred. A language added to this repository later is covered by being
+# added to that list, which is a change somebody makes on purpose, rather than
+# by whatever the inference happened to detect on the day.
+#
+# The finding class this exists for is a string from a case file reaching an
+# executable path. The grammar in #21 is supposed to make that impossible, and
+# this is the independent check on that claim rather than a restatement of it.
+# A finding on that path is not suppressed without a written reason beside the
+# suppression saying why the path is safe.
+#
+# Hardened per the workflow policy in zizmor.yml: every action is SHA-pinned
+# with a version comment, checkout runs with persist-credentials:false,
+# permissions are deny-all at the workflow level and the job grants only the
+# CodeQL minimum.
+#
+# The check-run names this workflow produces are depended on by the mapping, so
+# renaming the workflow or a matrix language removes a name rather than renaming
+# one. The required set is not restated here, where it would drift against the
+# ruleset that decides it. Print it:
+#
+#   gh api repos/iderex/findbuch/rules/branches/main \
+#     --jq '.[] | select(.type=="required_status_checks")
+#           | .parameters.required_status_checks[].context'
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+  schedule:
+    # A weekly baseline so the tree is re-analysed against updated queries even
+    # in a week with no push. The catalogue changes far more often than the
+    # code that reads it, and a query update is the thing most likely to find
+    # something nobody changed.
+    - cron: "41 3 * * 1"
+
+# Explicit deny-all at workflow level; the job below grants only what CodeQL
+# needs.
+permissions: {}
+
+# A newer run on the same ref supersedes an in-flight one. This is analysis and
+# not a publish, so cancelling a superseded run is safe.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write # upload the analysis SARIF into the code-scanning tab
+      contents: read # check out the code to analyse
+      actions: read # required for the `actions` language and to read workflow runs
+    strategy:
+      # One language failing must not cancel the other's analysis, or a red run
+      # would say nothing about the language that was fine.
+      fail-fast: false
+      matrix:
+        include:
+          # Python is interpreted and CodeQL needs no build for it. There is
+          # nothing to compile in this repository.
+          - language: python
+            build-mode: none
+          # The workflows themselves. They are the part of this tree with the
+          # widest permissions, so they are analysed like any other code.
+          - language: actions
+            build-mode: none
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so the GITHUB_TOKEN is not persisted into
+          # .git/config.
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # The default suite plus security-extended. The interesting finding
+          # in a project like this one is an injection through the formula
+          # path, which the extended suite reaches and the default one does
+          # not. The suite is named here so that what ran is readable from the
+          # workflow file rather than from a run log.
+          queries: security-extended
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          category: "/language:${{ matrix.language }}"
