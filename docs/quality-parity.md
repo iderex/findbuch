@@ -90,25 +90,34 @@ they are built by #53.
 ## What is already in this tree
 
 Four of the thirteen are satisfied by workflows that already exist here, and
-they are not rebuilt by this milestone.
+they are not rebuilt by this milestone. Three of the four carry a job name, and
+the command below names those three files rather than reading the whole
+directory. A directory-wide read also returns the rows this milestone is
+building, so its output moves every time one of them lands and stops matching
+the sentence it was pasted under, which is what happened between #47 and #73.
 
-The job-level check names, read from the tracked tree:
-
-    git grep -nE '^    name: ' -- .github/workflows/
+    git grep -nE '^    name: ' -- .github/workflows/dco.yml \
+      .github/workflows/unicode-guard.yml .github/workflows/zizmor.yml
     .github/workflows/dco.yml:24:    name: DCO sign-off
-    .github/workflows/scorecard.yml:50:    name: Scorecard analysis
     .github/workflows/unicode-guard.yml:23:    name: Reject Trojan Source Unicode
     .github/workflows/zizmor.yml:41:    name: Audit workflows (zizmor)
 
-`dependency-review` is the fifth and does not appear in that output, because its
-job deliberately carries no `name:`. The check-run name then defaults to the job
-id, which is the literal string a required status check would match. The reason
-is written in the workflow file beside the job.
+`dependency-review` is the fourth of them. It is absent from that output because
+its job deliberately carries no `name:`, not because it is missing from the
+tree. The check-run name then defaults to the job id, which is the literal
+string a required status check would match, and the reason is written in the
+workflow file beside the job:
+
+    git grep -nE '^  dependency-review:' -- .github/workflows/dependency-review.yml
+    .github/workflows/dependency-review.yml:20:  dependency-review:
 
 `Scorecard analysis` is a fifth guard in this tree with no counterpart on the
 target's required list. It is a self-audit that publishes a score rather than a
 gate over a pull request, and it is not proposed as a required check here
-either.
+either. It is outside the four above and outside the command that reads them:
+
+    git grep -nE '^    name: ' -- .github/workflows/scorecard.yml
+    .github/workflows/scorecard.yml:50:    name: Scorecard analysis
 
 ## What this gate adds that the target does not have
 
