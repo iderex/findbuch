@@ -1,0 +1,12 @@
+"""Deciding a bracket is zero by asking the heuristic.
+
+The shape 0006 calls the naive implementation. It looks like the obvious way to
+write the check and its wrong answers point the safe-looking way, so a correct
+row reads as a failed one.
+"""
+
+from sympy import simplify
+
+
+def bracket_vanishes(bracket):
+    return simplify(bracket) == 0

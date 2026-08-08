@@ -1,0 +1,12 @@
+"""The shortcut somebody writes when the grammar walk looks like a lot of work.
+
+This is the one-line reintroduction 0004 exists against, not an obviously wrong
+file. It reads like the reasonable thing to do and it hands a string out of a
+contributed row to the library's own parser.
+"""
+
+from sympy import sympify
+
+
+def load_hamiltonian(row):
+    return sympify(row["hamiltonian"])

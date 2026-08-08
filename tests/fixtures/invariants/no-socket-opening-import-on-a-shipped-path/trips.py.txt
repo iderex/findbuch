@@ -1,0 +1,14 @@
+"""A helper that fetches the source document while loading a row.
+
+0011 allows fetching a source document as an explicit command the operator runs,
+and refuses it as something loading a row triggers. This is the second one, and
+it arrives as a convenience nobody argued about.
+"""
+
+import urllib.request
+
+
+def load_row(path, provenance_url):
+    with urllib.request.urlopen(provenance_url) as response:
+        cached = response.read()
+    return path, cached

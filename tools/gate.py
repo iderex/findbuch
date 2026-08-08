@@ -107,6 +107,15 @@ LEGS: tuple[Leg, ...] = (
         cost="proportional to the number of rows, seconds",
     ),
     Leg(
+        name="invariants",
+        what="this repository's greppable invariants, over the paths each declares",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "check_invariants.py"),
+        ),
+        cost="one pass over the source, well under a second",
+    ),
+    Leg(
         name="tests",
         what="the test suite",
         command=(sys.executable, "-m", "unittest", "discover", "-s", "tests"),

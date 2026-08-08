@@ -1,0 +1,12 @@
+"""The same check, comparative.
+
+The Casimirs are conserved by construction on this structure, so their drift
+along this trajectory measures what the integrator did at this precision over
+this length. The candidate is compared against that, and both numbers come out
+of the same run. The floor moves with a stiff parameter set and an absolute
+constant cannot.
+"""
+
+
+def integral_is_conserved(drift, casimir_noise_floor):
+    return drift <= casimir_noise_floor * 10
