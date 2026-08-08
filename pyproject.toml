@@ -104,6 +104,8 @@ files = [
     "tools/check_catalogue_schema.py",
     "tools/check_interpreter.py",
     "tools/gate.py",
+    "tools/floor.py",
+    "tests/test_floor.py",
 ]
 
 # Row formatting. --no-sort-tables, because the field order in a row is fixed by
