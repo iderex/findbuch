@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "findbuch"
+version = "0.0.0"
+description = "A verified catalogue of the known integrable cases of rigid body dynamics"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# The runtime floor, as lower bounds. These say what the project claims to work
+# with. They are not what any run measured; requirements.lock is that, and the
+# two are kept apart on purpose. The build against the floor is #52.
+#
+# requirements.lock is regenerated from the bounds below with
+#
+#     pip-compile --generate-hashes --strip-extras --no-header \
+#         --output-file=requirements.lock pyproject.toml
+#
+# and it carries no generated header, because pip-compile's header repeats the
+# interpreter version and .python-version is meant to be the only place that
+# number is written. pip-tools 7.6.0 needs pip<26 to run at all; against pip
+# 26.1.2 it fails importing stdlib_pkgs before it reads any argument.
+#
+# The stack is the one docs/decisions/0001-means.md chose: SymPy decides the
+# symbolic leg, mpmath carries the arbitrary precision the numeric leg needs.
+# NumPy is named in that record as a fast path only and never in the path that
+# decides a verdict, so nothing depends on it yet and it is absent here rather
+# than declared unused.
+dependencies = [
+    "sympy>=1.13",
+    "mpmath>=1.3",
+]
+
+# No license field and no authors field. Both are open questions in #1: the
+# license of the code and of the rows is entry 1, and the identity a published
+# package carries is entry 7. Declaring either here would answer a question
+# that is not this issue's to answer.
+
+[tool.setuptools.packages.find]
+where = ["src"]

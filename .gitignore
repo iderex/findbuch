@@ -1,0 +1,11 @@
+# Local environments and build output. Nothing generated is tracked.
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.coverage
+.coverage.*
+htmlcov/
