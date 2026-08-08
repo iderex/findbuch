@@ -347,6 +347,24 @@ def validate_file(path: Path, registry: StructureRegistry) -> RowResult:
     try:
         with path.open("rb") as handle:
             document = tomllib.load(handle)
+    except FileNotFoundError:
+        # A refusal rather than an exception, because a caller validating a
+        # list of rows has to be able to report a missing one beside the
+        # malformed ones instead of stopping at it. The identifier is what
+        # tests/test_refusal_shape.py asserts on; #15 built this one first
+        # because it is the smallest refusal in the project and the shape it
+        # demonstrates is what every later refusal test follows.
+        return RowResult(
+            path,
+            (
+                Refusal(
+                    "file.missing",
+                    f"no file at '{path}', so there is nothing to validate",
+                    path.name,
+                ),
+            ),
+            parameters_rule_evaluated=False,
+        )
     except tomllib.TOMLDecodeError as error:
         return RowResult(
             path,

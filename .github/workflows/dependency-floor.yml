@@ -92,6 +92,19 @@ jobs:
         # to the tree that was checked out and the schema beside it.
         run: python -m pip install --no-deps --editable .
 
+      - name: Install the test runner
+        # The runner is a tool and not part of the set this run floors, so it
+        # carries no pin here: pinning it would put a second version number in
+        # this file, and the numbers this job measures are read from
+        # pyproject.toml by tools/floor.py rather than written down twice.
+        #
+        # After the floor install and not before it, so the resolution above is
+        # the one that decided the versions under test. pytest's own
+        # dependencies do not intersect the declared set, so this step cannot
+        # move a floored version; the freeze below is what says whether that
+        # held on the day the job ran.
+        run: python -m pip install pytest
+
       - name: Report what is installed
         run: python -m pip freeze
 

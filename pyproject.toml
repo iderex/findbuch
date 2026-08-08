@@ -46,6 +46,7 @@ dependencies = [
 #         --output-file=requirements-dev.lock pyproject.toml
 [project.optional-dependencies]
 gate = [
+    "pytest>=8.4",
     "ruff>=0.16",
     "mypy>=1.15",
     "toml-sort>=0.24",
@@ -58,6 +59,27 @@ gate = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# The test runner, chosen in #15. The half of its configuration that pytest
+# reads from a file is here; the half it reads only from the environment is in
+# tools/run_tests.py, which is what every caller of the suite execs.
+#
+# --strict-config and --strict-markers, because a typo in this table or in a
+# marker name is otherwise a silent no-op, and a runner that ignores what it
+# does not understand is a runner that can be configured into doing nothing.
+#
+# -p no:cacheprovider, because the cache is state written into the checkout
+# between runs and read by the next one, and a suite whose result depends on
+# what the last run left behind is not reproducible from a clean checkout.
+#
+# --import-mode=importlib, so that the modules under tests/ are imported as
+# themselves rather than through sys.path insertion. The package under test is
+# the installed one either way, which is what tests/test_package_tree.py
+# asserts.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers -p no:cacheprovider --import-mode=importlib"
+xfail_strict = true
 
 # Lint and format. Both run in check mode wherever the gate calls them; neither
 # has a fixing mode configured here, because a gate that rewrites the tree
@@ -109,6 +131,8 @@ files = [
     "tests/test_floor.py",
     "tools/coverage_bar.py",
     "tests/test_coverage_bar.py",
+    "tools/run_tests.py",
+    "tests/test_refusal_shape.py",
 ]
 
 # Coverage. Branch coverage, over what this project ships and not over the suite
