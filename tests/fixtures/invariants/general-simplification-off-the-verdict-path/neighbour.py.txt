@@ -1,0 +1,14 @@
+"""The same decision taken exactly.
+
+The bracket is written over a common denominator, the numerator is expanded into
+a canonical polynomial form over the rationals, and it is zero exactly when every
+coefficient is zero. That is a comparison of exact integers rather than a
+judgement, and it is decidable.
+"""
+
+from sympy import Poly
+
+
+def bracket_vanishes(bracket, generators):
+    numerator, _ = bracket.as_numer_denom()
+    return Poly(numerator.expand(), *generators).is_zero

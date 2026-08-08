@@ -1,0 +1,13 @@
+"""The same file with the one change that makes it legal.
+
+The string is walked against the admitted grammar and the object is built node
+by node, so nothing the file supplies is handed to a parser that would evaluate
+it. Everything else about the file is unchanged, which is what makes it a
+neighbour rather than a different file.
+"""
+
+from findbuch.expression import parse_against_grammar
+
+
+def load_hamiltonian(row, symbol_table):
+    return parse_against_grammar(row["hamiltonian"], symbol_table)

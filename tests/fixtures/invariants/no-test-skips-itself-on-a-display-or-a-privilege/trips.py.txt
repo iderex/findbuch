@@ -1,0 +1,14 @@
+"""A test that reports success for a run that did nothing.
+
+On a machine with a display it runs. On the headless machine #19 is about, it
+skips, the suite is green, and nothing anywhere says the assertion was not made.
+"""
+
+import os
+import unittest
+
+
+class ThePlotIsProduced(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get("DISPLAY"), "needs a display server")
+    def test_the_figure_renders(self):
+        self.assertTrue(True)

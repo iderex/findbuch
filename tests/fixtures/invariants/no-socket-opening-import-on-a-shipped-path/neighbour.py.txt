@@ -1,0 +1,13 @@
+"""The same helper, reading what is already on the host.
+
+The provenance entry is a reference a reader resolves, not an address the loader
+contacts. Nothing here opens a socket and nothing about the run leaves the
+machine.
+"""
+
+from pathlib import Path
+
+
+def load_row(path, provenance_reference):
+    cached = Path(path).read_bytes()
+    return path, provenance_reference, cached

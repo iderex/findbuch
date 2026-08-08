@@ -1,0 +1,10 @@
+"""The drift check with a number somebody picked.
+
+Nothing about this file looks alarming, which is the problem. The constant
+decides every verdict, and when it is too tight on a stiff parameter set the
+repair that gets made is to make the constant bigger.
+"""
+
+
+def integral_is_conserved(drift):
+    return drift < 1e-10

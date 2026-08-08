@@ -1,0 +1,81 @@
+# Enforce this repository's greppable invariants (#50). Part of the parity
+# mapping in docs/quality-parity.md, where the target requires
+# `Enforce greppable invariants`. The mechanism carries over; the invariants do
+# not, because they are about this project's own hazards rather than a plugin's.
+#
+# WHAT IS ENFORCED is not restated here. A list in a workflow file drifts
+# against the list that decides it, and the one that decides it is
+# src/findbuch/invariants.py, where each pattern carries its reason and the
+# issue that decided it. Print it:
+#
+#   python tools/check_invariants.py --list
+#
+# The self-proof step runs first and reds the job when a rule has stopped
+# refusing what it names. Each invariant ships with a fixture that trips it and
+# a one-change neighbour that does not, and the suite asserts that the tripping
+# fixture is refused by exactly that invariant. A pattern that has quietly
+# stopped matching looks exactly like a tree that never violates it, which is
+# the failure this job is most likely to have and the least likely to notice.
+#
+# WHAT THIS CANNOT DO, written here beside what it does so that a reviewer does
+# not read the green check as more than it is. A pattern decides that a spelling
+# is absent from a file. It does not decide that the property holds: a call
+# reached through an alias, an attribute looked up by name, or a routine
+# imported under another name passes every rule. The proofs that reach further
+# are named in the decision records and are not replaced by this job.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Invariants
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the job reads the checked-out source and writes nothing anywhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. The verdict depends only on the
+# source at that ref, so re-running from scratch is both cheap and correct.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: Enforce greppable invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # .python-version is the one place the interpreter version is
+          # written, so this job reads it rather than repeating the number.
+          python-version-file: .python-version
+
+      - name: Prove the rules bite before applying them
+        # The fixtures, before the tree. A rule that has stopped refusing its
+        # own fixture is reported here rather than in a green scan of a tree it
+        # was no longer reading.
+        #
+        # No install step: this suite and the scanner import nothing outside
+        # the standard library and this package, so src on the path is the
+        # whole requirement. Adding an install would make this job depend on a
+        # package index for a check that reads local files.
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p test_invariants.py -v
+
+      - name: Enforce the invariants over the tree
+        run: python tools/check_invariants.py
