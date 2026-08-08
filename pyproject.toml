@@ -49,6 +49,7 @@ gate = [
     "ruff>=0.16",
     "mypy>=1.15",
     "toml-sort>=0.24",
+    "coverage>=7.15",
     # Third-party stubs are pinned like any other dependency, which is why they
     # are here and in requirements-dev.lock rather than installed by
     # `mypy --install-types` on whichever machine happens to run the gate.
@@ -106,7 +107,21 @@ files = [
     "tools/gate.py",
     "tools/floor.py",
     "tests/test_floor.py",
+    "tools/coverage_bar.py",
+    "tests/test_coverage_bar.py",
 ]
+
+# Coverage. Branch coverage, over what this project ships and not over the suite
+# that exercises it: a number that counted the tests would rise when a test was
+# added and say nothing about the code. Which modules are gated on the number and
+# which are only reported is tools/coverage_bar.py, with the reason at each one,
+# and #54 is where that split was argued.
+[tool.coverage.run]
+branch = true
+source = ["src", "tools"]
+
+[tool.coverage.report]
+show_missing = true
 
 # Row formatting. --no-sort-tables, because the field order in a row is fixed by
 # docs/decisions/0003-row-format.md and reordering it would make two rows harder

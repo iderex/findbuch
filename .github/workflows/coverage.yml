@@ -1,0 +1,83 @@
+# Gate coverage on the code that decides a verdict, and report the rest (#54).
+# Part of the parity mapping in docs/quality-parity.md, where the target gates
+# coverage on the modules that decide authentication outcomes. The equivalent
+# surface here is the code that decides whether a row is verified, because a
+# checker that quietly stops refusing is this project's characteristic failure.
+#
+# THE SURFACE AND THE BAR ARE NOT WRITTEN IN THIS FILE. tools/coverage_bar.py
+# holds both, each with the reason beside it, and tests/test_coverage_bar.py
+# refuses a second copy of the bar here as well as a shipped module that has
+# been placed on neither side. A number written twice moves apart in silence,
+# and a coverage gate that has drifted is green in exactly the way a covered
+# tree is.
+#
+# WHAT THIS CANNOT SAY. A bar is a floor under a ratio of executed statements.
+# It cannot require that a particular refusal path is executed by a test, and
+# the module docstring in tools/coverage_bar.py says so where somebody reading a
+# green check will find it.
+#
+# The report is attached whatever the verdict is. A failing bar is the moment
+# somebody needs the per-line report, and one that survives only a green run is
+# one nobody ever reads.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the job reads the checked-out source, measures it, and writes only
+# into the runner.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: coverage bar
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # .python-version is the one place the interpreter version is written,
+          # so this job reads it rather than repeating the number. The bar is
+          # measured on the pinned interpreter; the floor build is where a
+          # different one is deliberately used, and it is a different job.
+          python-version-file: .python-version
+
+      - name: Install the locked runtime and gate sets
+        # Both locks, hashes and all. The measurement is of this tree against
+        # one resolution, and a resolution chosen by the index on the day would
+        # make a moved number impossible to tell from a changed one.
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+
+      - name: Measure the verdict path, report the rest, and decide
+        run: python tools/coverage_bar.py --report-into "$RUNNER_TEMP/coverage"
+
+      - name: Attach the report
+        # always(), not success(). The report is what diagnosing a failure needs.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: ${{ runner.temp }}/coverage
+          if-no-files-found: error
