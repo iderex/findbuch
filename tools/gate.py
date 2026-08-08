@@ -118,7 +118,11 @@ LEGS: tuple[Leg, ...] = (
     Leg(
         name="tests",
         what="the test suite",
-        command=(sys.executable, "-m", "unittest", "discover", "-s", "tests"),
+        # Through tools/run_tests.py rather than by calling pytest here. The
+        # runner's environment is part of the invocation and has one home; a
+        # second spelling of it in this list would be the drift this whole file
+        # exists against.
+        command=(sys.executable, str(REPO_ROOT / "tools" / "run_tests.py")),
         cost="seconds today, and it grows with the suite",
     ),
     Leg(

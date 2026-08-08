@@ -38,6 +38,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+RUN_TESTS = REPO_ROOT / "tools" / "run_tests.py"
 
 # The gated surface, with the reason each module is on it. Everything that can
 # turn a wrong row green.
@@ -88,22 +89,32 @@ REPORTED_ONLY: dict[str, str] = {
         "this file. It measures, and a measuring instrument gating itself on "
         "its own measurement says nothing about either"
     ),
+    "tools/run_tests.py": (
+        "the suite's own entry point. It is the process this measurement runs "
+        "in, so a ratio over it counts the act of measuring; whether it works "
+        "is decided by whether the suite ran at all, which is the leg's verdict "
+        "and not a percentage"
+    ),
 }
 
 # The bar, as a whole-number percentage.
 #
-# WHY THIS VALUE. The gated surface measures 93 with branch coverage today, over
-# 152 statements, and the command that produced that number is in docs/coverage.md
-# beside it. The bar sits below the measurement rather than at it, because a bar
-# at the measurement reddens the first time somebody lands a statement and its
-# test in two commits, and a gate that reds for arithmetic is a gate people learn
-# to re-run rather than read.
+# WHY THIS VALUE. The gated surface measures 94 with branch coverage today, over
+# 154 statements. The bar sits below the measurement rather than at it, because a
+# bar at the measurement reddens the first time somebody lands a statement and
+# its test in two commits, and a gate that reds for arithmetic is a gate people
+# learn to re-run rather than read.
 #
-# WHAT THAT COSTS, stated rather than left to be worked out: three points of 152
-# statements is about four, so this bar refuses a regression of five uncovered
-# statements and permits one of four. Raising it is a change with its own
+# WHAT THAT COSTS, stated rather than left to be worked out: four points of 154
+# statements is about six, so this bar refuses a regression of seven uncovered
+# statements and permits one of six. Raising it is a change with its own
 # reasoning and its own measurement, in this file, and not a ratchet that runs
 # on its own.
+#
+# The measurement moved from 93 over 152 when #15 added the missing-file refusal
+# and the test that reaches it. docs/coverage.md holds a read-back at a named
+# commit rather than a running number, so the block there is still true of the
+# commit it names and is not edited to match this one.
 BAR = 90
 
 
@@ -138,7 +149,10 @@ def run(report_into: Path) -> int:
     report_into.mkdir(parents=True, exist_ok=True)
 
     _coverage(["erase"])
-    measured = _coverage(["run", "-m", "unittest", "discover", "-s", "tests"])
+    # The same runner the gate's tests leg calls, and it runs pytest inside this
+    # process rather than handing it to a child, so what coverage measures is
+    # the suite and not the launcher.
+    measured = _coverage(["run", str(RUN_TESTS)])
     if measured != 0:
         print("\ncoverage: REFUSED, the suite failed under measurement")
         return measured
