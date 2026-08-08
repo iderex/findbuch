@@ -1,0 +1,107 @@
+# Build and test against the declared floor (#52). Part of the parity mapping in
+# docs/quality-parity.md, where the target requires `ABI floor build`. There is
+# no host application to be loaded by here, so the compatibility floor is the
+# lowest declared interpreter and the lowest declared library versions rather
+# than a server interface.
+#
+# THE FAILURE THIS PREVENTS. Every other route measures this project against
+# requirements.lock, which pins versions newer than anything pyproject.toml
+# declares. An interface that exists only in the pinned version gets used,
+# everything stays green, and the first person who installs at the declared
+# bounds gets an error nobody here has seen. That is not hypothetical for this
+# stack: the symbolic library's polynomial and Groebner interfaces have changed
+# across releases, and those are the calls a verdict will rest on.
+#
+# NO VERSION NUMBER IS WRITTEN IN THIS FILE. pyproject.toml declares the bounds
+# once and tools/floor.py reads them, because a copy here drifts against the
+# declaration the day somebody raises a bound, and it drifts silently: a floor
+# build against the wrong floor is green in exactly the same way as one against
+# the right floor. tests/test_floor.py refuses a declared version literal in
+# this file, so the rule is refused rather than remembered.
+#
+# WHAT THIS RUN DOES NOT ANSWER FOR, written here beside what it does so that a
+# reviewer does not read the green check as more than it is. The legs it runs
+# are derived from the gate's own leg list and printed by the run itself; the
+# ones it drops carry their reason in NOT_ON_THE_FLOOR in tools/floor.py. Four
+# are dropped today, including the interpreter leg, which refuses exactly the
+# difference this job exists to create. Only the declared bounds are pinned:
+# whatever those packages pull in behind them resolves to whatever the index
+# offers, so a break arriving through a transitive dependency is invisible here.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Dependency floor
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the job reads the checked-out source, installs into its own runner
+# and writes nothing anywhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. The verdict depends on the source at
+# that ref and on the index, and re-running from scratch is the cheaper of the
+# two ways to be sure.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-floor:
+    name: dependency floor build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Read the declared interpreter floor
+        id: floor
+        # The runner's own interpreter reads the declaration. It is not the one
+        # the rest of the job runs on; it is only what parses pyproject.toml
+        # before the floor interpreter exists on this machine.
+        run: |
+          echo "interpreter=$(python3 tools/floor.py --interpreter)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up the interpreter the project declares as its floor
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ steps.floor.outputs.interpreter }}
+
+      - name: Resolve the declared set at its lower bounds
+        # Printed before it is installed, and printed again by pip afterwards,
+        # so the log says which versions this run actually measured rather than
+        # which ones it asked for.
+        run: |
+          python -m pip install --upgrade pip
+          python tools/floor.py --pins | tee "$RUNNER_TEMP/floor.txt"
+          python -m pip install --requirement "$RUNNER_TEMP/floor.txt"
+
+      - name: Install this package against that set
+        # --no-deps: the set above is the whole runtime environment, and a
+        # resolver allowed to reach for a newer release here would undo the
+        # pinning one step after it was done. Editable, so the package resolves
+        # to the tree that was checked out and the schema beside it.
+        run: python -m pip install --no-deps --editable .
+
+      - name: Report what is installed
+        run: python -m pip freeze
+
+      - name: Run the legs a floor run answers for
+        run: python tools/floor.py --run
+
+      - name: Say what to do about a failure
+        # Covers a failed resolution as well as a failed leg, which is why it is
+        # keyed to the job rather than to the step above. The text has one home,
+        # in tools/floor.py, so the person who hits this reads the same two
+        # repairs wherever they hit it.
+        if: failure()
+        run: python3 tools/floor.py --repairs
