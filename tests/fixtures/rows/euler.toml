@@ -1,0 +1,36 @@
+# A fixture row, and a fixture vocabulary is a fixture vocabulary. It is here to
+# exercise the validator, not to be a catalogue entry, and it is deliberately not
+# under catalogue/. The real Euler row is #23, entered from the source rather
+# than from this file.
+id = "euler"
+name = "Euler"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M1*M1)/(2*A1) + (M2*M2)/(2*A2) + (M3*M3)/(2*A3)"
+integrals = ["M1*M1 + M2*M2 + M3*M3"]
+validity = "general"
+
+[[parameters]]
+symbol = "A1"
+meaning = "principal moment of inertia about the first axis"
+
+[[parameters]]
+symbol = "A2"
+meaning = "principal moment of inertia about the second axis"
+
+[[parameters]]
+symbol = "A3"
+meaning = "principal moment of inertia about the third axis"
+
+[domain]
+description = "the whole phase space, for positive principal moments"
+parameter_space = ["A1 > 0", "A2 > 0", "A3 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

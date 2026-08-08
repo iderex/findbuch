@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/iderex/findbuch/schema/row-1.0.schema.json",
+  "title": "findbuch catalogue row",
+  "description": "The shape of one integrable case. This refuses shape and never meaning: a row that validates here is well formed and is not verified, and nothing in this file is evidence about the mathematics. docs/decisions/0003-row-format.md fixes the fields, 0005 the validity kinds, 0008 the identifier and the statuses, and 0009 the provenance entry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "structure",
+    "hamiltonian",
+    "parameters",
+    "validity",
+    "domain",
+    "provenance"
+  ],
+  "properties": {
+    "id": {
+      "description": "The case identifier. A slug, opaque, never reused, and never parsed for meaning by a consumer. 0008.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "name": {
+      "description": "The display name a reader recognises. Parsed by nothing.",
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "description": "0008 fixes three and there is no fourth. Absent means active.",
+      "type": "string",
+      "enum": ["active", "superseded", "retracted"],
+      "default": "active"
+    },
+    "supersedes": {
+      "description": "The identifier this row replaces, where it replaces one.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "superseded_by": {
+      "description": "The identifier that replaced this row. Required when the status is superseded, which is checked outside this file.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "revision": {
+      "description": "Bumped when the row is corrected without changing what it is about. 0008.",
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "structure": {
+      "description": "The identifier of the Poisson structure this row lives on. Required with no default: the default would be e(3), and e(3) is the wrong answer for the family most likely to be transcribed carelessly. That the identifier names a structure that exists is not decidable here and is checked outside this file.",
+      "type": "string",
+      "minLength": 1
+    },
+    "hamiltonian": {
+      "description": "The Hamiltonian, as an expression string over the coordinates of the named structure and the parameters this row declares. A string, never a tree and never code.",
+      "type": "string",
+      "minLength": 1
+    },
+    "integrals": {
+      "description": "The additional integrals, each an expression string over the same symbols. Empty for an invariant-relation row, which claims no integral.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "parameters": {
+      "description": "The parameter symbols with what each one means physically. A symbol not declared here is not a free variable anywhere.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["symbol", "meaning"],
+        "properties": {
+          "symbol": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$"},
+          "meaning": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "conditions": {
+      "description": "The parameter conditions, as expressions rather than prose, so they can be reduced against rather than read.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "validity": {
+      "description": "The kind of validity claimed. 0005 fixes three and there is no fourth and no default: the default would be general, and the general case is the one the literature claims wrongly.",
+      "type": "string",
+      "enum": ["general", "conditional", "invariant-relation"]
+    },
+    "constraints": {
+      "description": "The constraints a conditional row holds under, or the relation an invariant-relation row preserves. Required exactly when the validity kind requires them and refused when it does not, which is checked outside this file.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "domain": {
+      "description": "Where in the phase space and the parameter space the claim is made.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "phase_space": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "parameter_space": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "aliases": {
+      "description": "Other published names for this case, each with the source that uses it. Without these a catalogue with correct contents is unusable by somebody holding the wrong survey. 0008.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "source"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1},
+          "same_case_uncertain": {"type": "boolean", "default": false}
+        }
+      }
+    },
+    "provenance": {
+      "description": "Where the row came from. At least one entry, because a row with no source is not a transcription of anything. 0009.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference", "language", "location", "notation", "role", "read"],
+        "properties": {
+          "reference": {
+            "description": "Precise enough to identify one edition. A reference that resolves to two printings resolves to two tables.",
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "description": "The language of the text that was actually read, not of a translation that exists. 0012.",
+            "type": "string",
+            "minLength": 2
+          },
+          "location": {
+            "description": "The page, and the equation or theorem number where the source numbers them. A page alone sends the next reader to a page.",
+            "type": "string",
+            "minLength": 1
+          },
+          "notation": {
+            "description": "Which frame, which bracket sign convention, and what the source called the parameters. A row without this carries an unrecorded conversion nobody can check.",
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "description": "0009 fixes three: the paper that first stated the case, a table or book reproducing it, and a later source that changed something.",
+            "type": "string",
+            "enum": ["original", "survey", "correction"]
+          },
+          "transformation": {
+            "description": "The change of variables the transcription required, as an expression so it can be applied and inverted mechanically.",
+            "type": "string",
+            "minLength": 1
+          },
+          "transformation_checked": {
+            "description": "Whether that change of variables has been checked. False is the honest default and the coverage report counts it.",
+            "type": "boolean",
+            "default": false
+          },
+          "read": {
+            "description": "Whether this source was read directly, or the row was taken from something quoting it.",
+            "type": "string",
+            "enum": ["directly", "via-another-source"]
+          }
+        }
+      }
+    },
+    "note": {
+      "description": "Free text for what does not fit a field. Read by people and by nothing else.",
+      "type": "string"
+    }
+  }
+}

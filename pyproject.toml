@@ -31,6 +31,7 @@ requires-python = ">=3.11"
 dependencies = [
     "sympy>=1.13",
     "mpmath>=1.3",
+    "jsonschema>=4.23",
 ]
 
 # No license field and no authors field. Both are open questions in #1: the
@@ -48,6 +49,10 @@ gate = [
     "ruff>=0.16",
     "mypy>=1.15",
     "toml-sort>=0.24",
+    # Third-party stubs are pinned like any other dependency, which is why they
+    # are here and in requirements-dev.lock rather than installed by
+    # `mypy --install-types` on whichever machine happens to run the gate.
+    "types-jsonschema>=4.23",
 ]
 
 [tool.setuptools.packages.find]
@@ -89,8 +94,11 @@ files = [
     "src/findbuch/__init__.py",
     "tests/test_package_tree.py",
     "tests/test_gate.py",
+    "tests/test_row_schema.py",
     "tests/test_type_check_coverage.py",
+    "src/findbuch/validation.py",
     "tools/check_catalogue_format.py",
+    "tools/check_catalogue_schema.py",
     "tools/check_interpreter.py",
     "tools/gate.py",
 ]

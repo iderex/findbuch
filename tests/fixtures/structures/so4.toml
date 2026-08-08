@@ -1,0 +1,2 @@
+# A fixture structure. See e3.toml.
+coordinates = ["M1", "M2", "M3", "N1", "N2", "N3"]
