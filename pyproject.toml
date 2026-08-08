@@ -88,8 +88,11 @@ strict = true
 files = [
     "src/findbuch/__init__.py",
     "tests/test_package_tree.py",
+    "tests/test_gate.py",
     "tests/test_type_check_coverage.py",
     "tools/check_catalogue_format.py",
+    "tools/check_interpreter.py",
+    "tools/gate.py",
 ]
 
 # Row formatting. --no-sort-tables, because the field order in a row is fixed by
