@@ -98,6 +98,15 @@ LEGS: tuple[Leg, ...] = (
         cost="proportional to the number of rows, seconds",
     ),
     Leg(
+        name="schema",
+        what="every catalogue row against the published schema",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "check_catalogue_schema.py"),
+        ),
+        cost="proportional to the number of rows, seconds",
+    ),
+    Leg(
         name="tests",
         what="the test suite",
         command=(sys.executable, "-m", "unittest", "discover", "-s", "tests"),

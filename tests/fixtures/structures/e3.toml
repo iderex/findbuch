@@ -1,0 +1,4 @@
+# A fixture structure, not the real one. The real e(3), with its bracket table
+# and its declared Casimirs, is #25. This file exists so that the validator has
+# an identifier to resolve against and a coordinate list to subtract.
+coordinates = ["M1", "M2", "M3", "g1", "g2", "g3"]
