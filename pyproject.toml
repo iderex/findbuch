@@ -38,5 +38,65 @@ dependencies = [
 # package carries is entry 7. Declaring either here would answer a question
 # that is not this issue's to answer.
 
+# The gate's own tools, locked in requirements-dev.lock the same way the runtime
+# set is locked in requirements.lock. Regenerate with
+#
+#     pip-compile --generate-hashes --strip-extras --no-header --extra gate \
+#         --output-file=requirements-dev.lock pyproject.toml
+[project.optional-dependencies]
+gate = [
+    "ruff>=0.16",
+    "mypy>=1.15",
+    "toml-sort>=0.24",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Lint and format. Both run in check mode wherever the gate calls them; neither
+# has a fixing mode configured here, because a gate that rewrites the tree
+# leaves a green log and a dirty working copy and the difference between those
+# two is invisible afterwards.
+[tool.ruff]
+line-length = 88
+src = ["src", "tests", "tools"]
+
+[tool.ruff.lint]
+select = [
+    "A",    # shadowing a builtin
+    "ARG",  # an argument nothing reads
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # import order
+    "N",    # naming
+    "PTH",  # os.path where pathlib is meant
+    "RUF",  # ruff's own
+    "SIM",  # simplifiable constructs
+    "TID",  # tidy imports
+    "UP",   # constructs the floor makes obsolete
+    "W",    # pycodestyle warnings
+]
+
+# Types. strict, and over a module set written out rather than discovered, so a
+# module joins the checked set by being added to this list. Nothing infers it,
+# which is the point: tests/test_type_check_coverage.py refuses a tracked module
+# that is missing from it, so the list cannot fall behind the tree in silence.
+[tool.mypy]
+strict = true
+files = [
+    "src/findbuch/__init__.py",
+    "tests/test_package_tree.py",
+    "tests/test_type_check_coverage.py",
+    "tools/check_catalogue_format.py",
+]
+
+# Row formatting. --no-sort-tables, because the field order in a row is fixed by
+# docs/decisions/0003-row-format.md and reordering it would make two rows harder
+# to compare rather than easier, which is the whole reason the rows are formatted
+# at all.
+[tool.tomlsort]
+no_sort_tables = true
+spaces_indent_inline_array = 4
+trailing_comma_inline_array = true
