@@ -167,6 +167,40 @@ MAXIMUM_TERMS = 4096
 MAXIMUM_LENGTH = 512
 
 
+# Every refusal identifier this module raises. It is declared rather than
+# gathered, because the fuzz harness in #56 asks whether an outcome carries a
+# KNOWN identifier, and a set derived from whatever the module happened to raise
+# would admit a typo in a new refusal as a known one.
+#
+# A declaration beside the code it describes drifts, so it is not left to be
+# trusted: `tests/test_fuzz_harness.py` reads this module's own source, collects
+# every `expression.<name>` literal in it, and requires the two sets to be
+# equal. Adding a refusal without adding it here reddens there.
+REFUSALS: frozenset[str] = frozenset(
+    {
+        "expression.arity",
+        "expression.attribute-access",
+        "expression.call-not-a-name",
+        "expression.decimal-literal",
+        "expression.empty",
+        "expression.function-not-called",
+        "expression.keyword-argument",
+        "expression.literal-refused",
+        "expression.node-refused",
+        "expression.non-integer-exponent",
+        "expression.operator-refused",
+        "expression.starred-argument",
+        "expression.subscript",
+        "expression.too-deep",
+        "expression.too-large",
+        "expression.too-long",
+        "expression.unknown-function",
+        "expression.unknown-symbol",
+        "expression.unparseable",
+    }
+)
+
+
 class ExpressionRefused(Exception):  # noqa: N818
     """One reason a formula string was refused, with where it happened.
 
@@ -527,6 +561,19 @@ def parse(text: str, table: SymbolTable) -> sympy.Expr:
             f"the string is not an expression at all: {broken.msg}",
             position,
         ) from broken
+    except ValueError as rejected:
+        # NOT a duplicate of the branch above, and it was found by the fuzz
+        # harness in #56 rather than by reading. A SyntaxError is what the
+        # parser raises about a string it read; a ValueError is what it raises
+        # about a string it would not read at all, and the two are separate
+        # types with no common ancestor below Exception. A lone surrogate
+        # reaches the tokenizer's own encode step and comes back as
+        # UnicodeEncodeError, which is a ValueError, and before this branch it
+        # left this module as an unhandled error rather than as a refusal.
+        raise ExpressionRefused(
+            "expression.unparseable",
+            f"the string is not one the language will read: {rejected}",
+        ) from rejected
     # The position rather than the offending token, in this refusal and the one
     # at the bottom: the token here is the whole string, and a message that
     # quotes a hundred nested parentheses back at somebody says nothing.

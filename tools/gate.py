@@ -128,6 +128,19 @@ LEGS: tuple[Leg, ...] = (
         ),
     ),
     Leg(
+        name="fuzz-seeds",
+        what="every committed seed replayed against the parser",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "fuzz_parser.py"),
+        ),
+        cost=(
+            "seconds. This is the replay and not the search: the search derives "
+            "inputs from the corpus and is asked for with --search N, which "
+            "nothing here passes."
+        ),
+    ),
+    Leg(
         name="invariants",
         what="this repository's greppable invariants, over the paths each declares",
         command=(
