@@ -133,6 +133,10 @@ files = [
     "tests/test_coverage_bar.py",
     "tools/run_tests.py",
     "tests/test_refusal_shape.py",
+    "tools/verify_symbolic_fast.py",
+    "tools/verify_numeric_fast.py",
+    "tests/test_check_names.py",
+    "tests/test_verification_legs.py",
 ]
 
 # Coverage. Branch coverage, over what this project ships and not over the suite
