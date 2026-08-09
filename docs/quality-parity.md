@@ -85,7 +85,21 @@ question.
 `dependency-review` is unchanged and is already in this tree. See below. The
 locked-mode install and the vulnerability scan of the resolved set are the same
 obligation applied to the full dependency graph rather than to the diff, and
-they are built by #53.
+they are built by #53. That check name is
+`locked install and vulnerability scan`, in
+`.github/workflows/supply-chain.yml`, and it is not proposed as a required check
+here. Its verdict depends on an advisory database outside this repository, so it
+can turn red on a day nothing in the tree changed, and #57's own argument
+against requiring a name before it is known to be stable applies to it more
+strongly than to the names decided from bytes in the checkout.
+
+Two things that job does not answer for are worth having in this document rather
+than only in the workflow file. It does not check that the lockfiles still match
+the bounds `pyproject.toml` declares: hashes bind the archive and the rule in
+`tools/supply_chain.py` binds the version, and neither re-resolves against the
+declaration. And the neighbour half of its self-test, the fixture pinned at a
+fixed version that has to pass, is a claim about the advisory database on the
+day it ran rather than about anything here.
 
 ## What is already in this tree
 

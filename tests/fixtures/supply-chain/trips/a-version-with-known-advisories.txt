@@ -1,0 +1,10 @@
+# A pin the advisory database has entries for. The scan has to refuse this file.
+#
+# Nothing installs it and nothing in this project depends on it. It is here so
+# that the failure path of the scan is exercised rather than assumed: a scanner
+# that had stopped reading the database would report no vulnerabilities over the
+# real lockfiles and look exactly like one that was working.
+#
+# Its neighbour under ../neighbour/ is the same file at the fixed version and
+# has to pass, without which refusing every input would satisfy this half.
+jinja2==2.11.2

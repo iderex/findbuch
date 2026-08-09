@@ -1,0 +1,84 @@
+# Install from the lockfile in a failing mode, and scan the resolved set (#53).
+#
+# WHY THIS IS NOT A JOB IN gate.yml. Every job there runs a leg that decides
+# everything from bytes in the checkout, so a contributor with no network runs
+# the whole of that gate. The two checks here resolve against the package index
+# and read the advisory database, which is why `supply-chain` is out of the
+# gate's default run and why the run itself prints that it was not asked for and
+# what asking would cost. tests/test_check_names.py holds the reason beside the
+# seven names that workflow may produce, so this file cannot quietly become an
+# eighth one.
+#
+# THE SELF-TEST RUNS FIRST, and the check runs only after it. A scan that has
+# stopped reading the database reports no vulnerabilities over the real
+# lockfiles and looks exactly like one that is working, and a locked install
+# whose flag was dropped accepts a tampered archive and looks exactly like one
+# that refused it. Both failures are invisible from the green tick, so the
+# things that must be refused are refused first, in the same job, and the
+# verdict below is worth reading only because that step passed.
+#
+# WHAT THIS JOB DOES NOT ANSWER FOR. Whether the lockfiles still match the
+# bounds `pyproject.toml` declares. `--require-hashes` binds the archive and the
+# rule in tools/supply_chain.py binds the version, and neither of them
+# re-resolves against the declaration, so a bound raised without regenerating
+# the lock leaves this job green. tools/supply_chain.py says the same thing at
+# the top, where somebody changing it will read it.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Supply chain
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the job reads the checked-out source, installs into its own runner
+# and writes nothing anywhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. The verdict depends on the source at
+# that ref, on the index and on the advisory database, and re-running from
+# scratch is the cheaper of the two ways to be sure.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  supply-chain:
+    name: locked install and vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+
+      - name: Install the scanner from its own locked set
+        # Its own set, and locked the same way everything else here is. The
+        # scanner reads the two lockfiles by path rather than reading an
+        # installed environment, so nothing it drags in behind itself can appear
+        # in a finding about this project.
+        run: python -m pip install --require-hashes --requirement requirements-scan.lock
+
+      - name: Prove both halves refuse what they name
+        run: python tools/supply_chain.py --selftest
+
+      - name: Run the supply-chain leg
+        run: python tools/gate.py --leg supply-chain
+
+      - name: Say what a green tick here does not cover
+        if: always()
+        run: |
+          echo "this job did NOT check that the lockfiles still match the bounds"
+          echo "declared in pyproject.toml; nothing here re-resolves against them"

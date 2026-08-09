@@ -57,6 +57,18 @@ gate = [
     "types-jsonschema>=4.23",
 ]
 
+# The vulnerability scanner, locked the same way and kept in its own set on
+# purpose. It is installed into an environment of its own and reads the two
+# lockfiles by path rather than reading an environment, so its own dependencies
+# never join the set being scanned and a finding is always about something this
+# project ships. Regenerate with
+#
+#     pip-compile --generate-hashes --strip-extras --no-header --extra scan \
+#         --output-file=requirements-scan.lock pyproject.toml
+scan = [
+    "pip-audit>=2.9",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -150,6 +162,8 @@ files = [
     "src/findbuch/integrator.py",
     "tools/casimir_drift.py",
     "tests/test_integrator.py",
+    "tools/supply_chain.py",
+    "tests/test_supply_chain.py",
 ]
 
 # SymPy ships no type information and no stub package is published for it, so
