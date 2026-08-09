@@ -1,0 +1,88 @@
+# The parametrised family e(3), so(4) and so(3,1) share.
+#
+# 0002 decided that the three are written as one family with the parameter fixed
+# per file rather than as three tables. They differ in exactly one coefficient,
+# and three separate tables invite the day somebody corrects a sign in one of
+# them. Correcting a sign here corrects it in all three, and the tests in
+# tests/test_structures.py run over each of the three separately so a correction
+# that breaks one of them is caught at the structure rather than at the family.
+#
+# THE PARAMETER IS `kappa` AND IT APPEARS IN THREE ENTRIES, the ones between two
+# components of the second vector. kappa = 0 is e(3), kappa = 1 is so(4) and
+# kappa = -1 is so(3,1). Nothing else in the table moves with it.
+#
+# EVERY ORDERED PAIR IS DECLARED, INCLUDING THE ZEROS. Thirty-six entries for six
+# coordinates, and the loader refuses a table that leaves one out. An undeclared
+# pair defaulting to zero would be a bracket entry nobody wrote and nobody can
+# find, and the tests below would pass over it: a zero is a legal value and the
+# Jacobi identity holds for plenty of wrong tables that are mostly zero.
+#
+# The values are expression strings and go through the same parser a row's
+# formulas go through, `findbuch.expression`, against a symbol table of the
+# coordinates and `kappa` and nothing else. A typo in a coordinate name here is
+# refused by name rather than becoming a free variable.
+id = "rigid-body"
+name = "the rigid body family: e(3), so(4) and so(3,1)"
+parameter = "kappa"
+coordinates = ["M1", "M2", "M3", "g1", "g2", "g3"]
+
+# {M_i, M_j} = eps_ijk M_k. The angular momentum, closing on itself.
+bracket = [
+    { left = "M1", right = "M1", value = "0" },
+    { left = "M1", right = "M2", value = "M3" },
+    { left = "M1", right = "M3", value = "-M2" },
+    { left = "M2", right = "M1", value = "-M3" },
+    { left = "M2", right = "M2", value = "0" },
+    { left = "M2", right = "M3", value = "M1" },
+    { left = "M3", right = "M1", value = "M2" },
+    { left = "M3", right = "M2", value = "-M1" },
+    { left = "M3", right = "M3", value = "0" },
+    # {M_i, g_j} = eps_ijk g_k. The second vector transforms as a vector.
+    { left = "M1", right = "g1", value = "0" },
+    { left = "M1", right = "g2", value = "g3" },
+    { left = "M1", right = "g3", value = "-g2" },
+    { left = "M2", right = "g1", value = "-g3" },
+    { left = "M2", right = "g2", value = "0" },
+    { left = "M2", right = "g3", value = "g1" },
+    { left = "M3", right = "g1", value = "g2" },
+    { left = "M3", right = "g2", value = "-g1" },
+    { left = "M3", right = "g3", value = "0" },
+    # {g_i, M_j} = eps_ijk g_k, which is the transpose of the block above with
+    # its sign turned over. It is written out rather than derived, so that the
+    # antisymmetry test has something to test.
+    { left = "g1", right = "M1", value = "0" },
+    { left = "g1", right = "M2", value = "g3" },
+    { left = "g1", right = "M3", value = "-g2" },
+    { left = "g2", right = "M1", value = "-g3" },
+    { left = "g2", right = "M2", value = "0" },
+    { left = "g2", right = "M3", value = "g1" },
+    { left = "g3", right = "M1", value = "g2" },
+    { left = "g3", right = "M2", value = "-g1" },
+    { left = "g3", right = "M3", value = "0" },
+    # {g_i, g_j} = kappa * eps_ijk M_k. The one coefficient the three differ in.
+    { left = "g1", right = "g1", value = "0" },
+    { left = "g1", right = "g2", value = "kappa*M3" },
+    { left = "g1", right = "g3", value = "-kappa*M2" },
+    { left = "g2", right = "g1", value = "-kappa*M3" },
+    { left = "g2", right = "g2", value = "0" },
+    { left = "g2", right = "g3", value = "kappa*M1" },
+    { left = "g3", right = "g1", value = "kappa*M2" },
+    { left = "g3", right = "g2", value = "-kappa*M1" },
+    { left = "g3", right = "g3", value = "0" },
+]
+
+# The Casimirs, declared rather than derived, and checked rather than trusted.
+# 0002 argues both halves: deriving them is a second piece of mathematics to get
+# right, and a declaration standing on its own is dangerous because the numeric
+# leg measures drift against them. tests/test_structures.py brackets each of
+# these with every generator of every structure in the family and requires the
+# result to be identically zero.
+[[casimirs]]
+name = "the geometric integral"
+expression = "g1*g1 + g2*g2 + g3*g3 + kappa*(M1*M1 + M2*M2 + M3*M3)"
+meaning = "the length of the second vector, with the first entering it only where kappa does"
+
+[[casimirs]]
+name = "the area constant"
+expression = "M1*g1 + M2*g2 + M3*g3"
+meaning = "the projection of the angular momentum on the second vector, and the quantity a conditional case such as Goryachev-Chaplygin sets to zero"

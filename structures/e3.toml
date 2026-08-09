@@ -1,0 +1,14 @@
+# e(3), the classical heavy rigid body with a fixed point.
+#
+# The bracket table and the Casimirs are in the family this file names, with
+# `kappa` fixed below. 0002 decided that arrangement: the three structures differ
+# in one coefficient, and three separate tables drift apart.
+#
+# kappa = 0 makes the second vector abelian, which is what says the direction of
+# gravity is a direction rather than a second angular momentum. This is the
+# structure Euler, Lagrange, Kovalevskaya, Goryachev-Chaplygin and Hess live on.
+id = "e3"
+name = "e(3)"
+family = "rigid-body"
+kappa = 0
+coordinates = ["M1", "M2", "M3", "g1", "g2", "g3"]
