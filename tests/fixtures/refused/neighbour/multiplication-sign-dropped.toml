@@ -1,0 +1,32 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The mistake: M1 M1 where M1*M1 was meant. A paper writes the product of
+# two symbols by setting them side by side, and a transcription that keeps
+# the spacing loses the operator.
+id = "multiplication-sign-dropped"
+name = "A multiplication sign dropped between two symbols"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M1*M1 + M2*M2 + M3*M3)/(2*A1)"
+integrals = ["M1*g1 + M2*g2 + M3*g3"]
+validity = "general"
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

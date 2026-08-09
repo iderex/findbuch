@@ -142,6 +142,8 @@ files = [
     "tests/test_expression_grammar.py",
     "src/findbuch/structures.py",
     "tests/test_structures.py",
+    "tests/test_refused_corpus.py",
+    "tests/test_expression_bounds.py",
 ]
 
 # SymPy ships no type information and no stub package is published for it, so

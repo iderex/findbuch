@@ -1,0 +1,34 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The attack: twenty characters that denote more terms than anything will
+# hold. The grammar admits it, the depth is four, and no reading of the
+# string is expensive; what is expensive is what a checker downstream does
+# with it. So it is bounded by the number of terms it expands to, counted
+# structurally and without expanding anything.
+id = "expansion-past-the-size-limit"
+name = "An expression whose expansion is enormous"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M1*M1 + M2*M2 + M3*M3)/(2*A1)"
+integrals = ["(M1 + M2 + M3)**1000"]
+validity = "general"
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

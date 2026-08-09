@@ -1,0 +1,37 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The mistake: the constraint relates A1 to B1, and B1 is declared
+# nowhere. The constraint is the whole content of a conditional claim, so
+# a symbol that means nothing in it makes the claim mean nothing.
+id = "constraint-mentions-an-undeclared-symbol"
+name = "A constraint that mentions an undeclared symbol"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M1*M1 + M2*M2 + M3*M3)/(2*A1)"
+integrals = ["M1*g1 + M2*g2 + M3*g3"]
+validity = "conditional"
+constraints = ["A1 - A2"]
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[[parameters]]
+symbol = "A2"
+meaning = "a second moment, declared so a constraint has two symbols to relate"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

@@ -1,0 +1,32 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The mistake: M[1] for the first component. The source prints a
+# subscript, the bracket is the nearest thing on a keyboard, and this is
+# what a transcription reaches for before it has read the grammar.
+id = "subscript-as-the-source-wrote-it"
+name = "A subscript written the way the source wrote it"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M[1]*M[1] + M2*M2 + M3*M3)/(2*A1)"
+integrals = ["M1*g1 + M2*g2 + M3*g3"]
+validity = "general"
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

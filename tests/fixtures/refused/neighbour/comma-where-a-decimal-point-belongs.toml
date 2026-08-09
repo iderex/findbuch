@@ -1,0 +1,37 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The mistake: 1,5 for one and a half, which is how the number is written
+# in most of the languages these sources are in. The string stays legal
+# and denotes something else entirely, which is why it is refused rather
+# than read.
+#
+# The repair is 3/2 and not 1.5. A decimal literal is refused as well, by
+# expression.decimal-literal, because 0.1 is not the number it appears to
+# be and a verdict resting on it is a verdict about a different quantity.
+id = "comma-where-a-decimal-point-belongs"
+name = "A comma where a decimal point belongs"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "3/2*(M1*M1 + M2*M2 + M3*M3)/A1"
+integrals = ["M1*g1 + M2*g2 + M3*g3"]
+validity = "general"
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

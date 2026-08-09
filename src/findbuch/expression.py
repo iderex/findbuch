@@ -88,6 +88,84 @@ UNARY_OPERATORS: Mapping[type[ast.unaryop], str] = {
     ast.USub: "-",
 }
 
+# The numbers an expression is bounded by, stated here and nowhere else.
+#
+# None of them is a rule of the grammar. They refuse strings the grammar admits,
+# because the grammar has nothing to say about a formula that is well formed and
+# enormous, and those are the two inputs that have no clean refusal in it: a
+# deeply nested expression and one whose expansion is huge. They are bounded
+# instead, and a bound is a number somebody chose, so the reason is beside it.
+#
+# There are three numbers for two attacks, and the third is here because the
+# depth cannot be measured until the language's own parser has produced a tree,
+# and that parser is itself defeated by a long enough string. So the length is
+# bounded in front of it.
+#
+# MAXIMUM_DEPTH is how deeply the syntax tree may nest. The walk below is
+# recursive, at least one frame per node, so a string nested past the
+# interpreter's own recursion limit ends the process instead of refusing the
+# file, and a boundary that the input side can crash is not a boundary. The
+# depth is measured with an explicit stack, before the recursive walk starts,
+# because a check that recurses to find out whether recursing is safe is not a
+# check. 64 is far above anything transcription produces, and no formula in this
+# tree comes near it; tests/test_expression_bounds.py measures that rather than
+# asserting it, so a row that starts to approach the limit reddens.
+MAXIMUM_DEPTH = 64
+
+# MAXIMUM_TERMS is how many terms the expression may expand to. Depth alone does
+# not bound that, and the case that shows why is three characters long:
+# `(M1+M2+M3)**1000` nests four deep and expands to more terms than there are
+# atoms in anything. So the count is bounded structurally, without expanding
+# anything, and the bound is applied in two places, both of them below: to the
+# magnitude of an integer exponent, before that power is taken, and to the whole
+# expression once it is built.
+#
+# 4096 is above what the catalogue holds and below where an exact polynomial
+# identity stops being quick, and the same test measures the tree against it.
+# That there is headroom for the rows NOT YET ENTERED is a claim rather than a
+# measurement, and it is named as one: Yehia's generalisations are the rows most
+# likely to test it, and a row genuinely refused by this number is an argument
+# for raising it here, with its own measurement, rather than anywhere else.
+#
+# WHAT THESE TWO DO NOT BOUND, stated rather than left to be discovered. They
+# bound what this module builds and hands on. They say nothing about what a
+# later checker does with it: an expression of 4000 terms reduced against an
+# ideal can still take longer than anybody will wait, and that is the symbolic
+# leg's bound to choose and not this one.
+MAXIMUM_TERMS = 4096
+
+# MAXIMUM_LENGTH is how long the string may be, and it is checked before the
+# string is handed to anything. The depth above is measured on a tree, and the
+# tree is built by the language's own parser, which has no such limit of its own
+# and gives out on a long enough input. What it gives out with, and where,
+# depends on the interpreter:
+#
+#     ast.parse('-'*20000 + 'M1', mode='eval')   MemoryError    3.14, the pin
+#     ast.parse('-'*4095 + 'M1', mode='eval')    RecursionError 3.11, the floor
+#
+# Neither is a refusal. Both are the boundary falling over, which is what the
+# depth limit exists to prevent, one step further out. Nothing catches them
+# afterwards either: a catch around the parser would be a branch nothing in this
+# tree can reach, and an unreachable branch is not a guard.
+#
+# So the number is not chosen for how long a formula might be. It is chosen so
+# that NO string this module hands to that parser can reach its capacity on the
+# lowest interpreter the project claims. One character can open at most one level
+# of nesting, `-` being the character that does it, so a string of N characters
+# nests at most N deep, and the tree is built by recursion bounded by the
+# interpreter's own recursion limit, which is 1000 by default. 512 sits under
+# that with room for the frames a caller has already used. It is not asserted
+# from here: `tests/test_expression_bounds.py` parses a string at the limit, and
+# that test runs on the floor interpreter as well as on the pinned one, so the
+# floor is where the claim is actually decided.
+#
+# WHAT IT COSTS: a formula longer than 512 characters is refused before it is
+# read, however legal it is. Nothing in the grammar makes such a formula
+# impossible, and the longest in this tree is well inside it. If the catalogue
+# ever holds one that is an argument for raising this number, and it is a real
+# argument only together with a measurement of the parser it has to survive.
+MAXIMUM_LENGTH = 512
+
 
 class ExpressionRefused(Exception):  # noqa: N818
     """One reason a formula string was refused, with where it happened.
@@ -161,6 +239,84 @@ def _integer_literal(value: object) -> bool:
     # `True` is an int in this language and is not an integer literal in any
     # formula, so the type is checked exactly rather than with isinstance.
     return type(value) is int
+
+
+def _depth(node: ast.AST) -> int:
+    """How deeply the tree nests, measured with an explicit stack.
+
+    Not recursive, and that is the whole point of it: this is the check that
+    decides whether the recursive walk further down is safe to start, and a
+    check that recurses to find out whether recursing is safe answers the
+    question by falling over. It stops as soon as the limit is passed, so a
+    pathological tree is not walked to the end to find out that it is one.
+    """
+    deepest = 0
+    pending: list[tuple[ast.AST, int]] = [(node, 1)]
+    while pending:
+        current, depth = pending.pop()
+        if depth > MAXIMUM_DEPTH:
+            return depth
+        deepest = max(deepest, depth)
+        for child in ast.iter_child_nodes(current):
+            pending.append((child, depth + 1))
+    return deepest
+
+
+def _bounded_power(base: int, exponent: int) -> int:
+    """`base ** exponent`, abandoned as soon as it passes the limit.
+
+    Computing the power and then comparing it is the obvious spelling and it is
+    the one that hangs, because the string decides the exponent.
+    """
+    if base <= 1:
+        return base
+    # The base is two or more, so anything from here up is already past the
+    # limit, and the multiplication that would demonstrate it is the one being
+    # avoided.
+    if exponent >= MAXIMUM_TERMS.bit_length():
+        return MAXIMUM_TERMS + 1
+    # Both callers pass a magnitude, so the exponent is not negative and the
+    # power is a whole number. The conversion says so to the type checker, which
+    # otherwise has to allow for the negative case and the fraction it returns.
+    return int(base**exponent)
+
+
+def _expansion_bound(expression: sympy.Expr) -> int:
+    """An upper bound on how many terms this expands to, expanding nothing.
+
+    Structural, so it costs one walk of an object that is already built and
+    never the expansion itself. It is an upper bound rather than the count: a
+    product of two sums is bounded by the product of their term counts, and
+    cancellation only ever makes the real number smaller.
+    """
+    if expression.is_Atom:
+        return 1
+    if expression.is_Add:
+        total = 0
+        for term in expression.args:
+            total += _expansion_bound(term)
+            if total > MAXIMUM_TERMS:
+                return MAXIMUM_TERMS + 1
+        return total
+    if expression.is_Mul:
+        product = 1
+        for factor in expression.args:
+            product *= _expansion_bound(factor)
+            if product > MAXIMUM_TERMS:
+                return MAXIMUM_TERMS + 1
+        return product
+    if expression.is_Pow:
+        base, exponent = expression.args
+        bound = _expansion_bound(base)
+        # A non-integer exponent reaches here only as the library's spelling of
+        # a root, `sqrt(x)` being `x**(1/2)`, which expands to one term of
+        # whatever is underneath it.
+        if exponent.is_Integer:
+            return _bounded_power(bound, abs(int(exponent)))
+        return bound
+    # A call on the allowlist. `sin(x + y)` is one term of its argument, so what
+    # bounds it is the largest thing inside it.
+    return max((_expansion_bound(argument) for argument in expression.args), default=1)
 
 
 def _build(node: ast.expr, table: SymbolTable, text: str) -> sympy.Expr:
@@ -277,6 +433,26 @@ def _binary(node: ast.BinOp, table: SymbolTable, text: str) -> sympy.Expr:
             text,
             node.right,
         )
+    exponent = abs(int(right))
+    # The magnitude first, and before the power is taken. `2**10**9` is legal
+    # arithmetic, expands to one term, and produces a number with a billion bits
+    # if anything ever asks it to.
+    if exponent > MAXIMUM_TERMS:
+        raise _refuse(
+            "expression.too-large",
+            f"the exponent is {exponent} and the limit is {MAXIMUM_TERMS}; a "
+            f"formula in this catalogue does not need a power that large, and "
+            f"one that does is an argument for raising the limit where it is "
+            f"stated",
+            text,
+            node.right,
+        )
+    # What a power of a SUM expands to is not checked here, and the omission is
+    # deliberate. It was written, and then removed because disabling it left the
+    # suite green: raising a sum to a power builds an object and expands
+    # nothing, so the count at the bottom of `parse` reaches the same verdict
+    # with the same identifier. A guard whose deletion nothing notices is not a
+    # guard, and keeping it would have meant one more branch nothing proves.
     return left**right
 
 
@@ -335,6 +511,13 @@ def parse(text: str, table: SymbolTable) -> sympy.Expr:
             "the expression is empty, and an empty formula is not the number "
             "zero written another way",
         )
+    if len(text) > MAXIMUM_LENGTH:
+        raise ExpressionRefused(
+            "expression.too-long",
+            f"the string is {len(text)} characters and the limit is "
+            f"{MAXIMUM_LENGTH}; this is checked before the string is parsed, "
+            f"because the parser is what a long enough string defeats",
+        )
     try:
         tree = ast.parse(text, mode="eval")
     except SyntaxError as broken:
@@ -344,7 +527,50 @@ def parse(text: str, table: SymbolTable) -> sympy.Expr:
             f"the string is not an expression at all: {broken.msg}",
             position,
         ) from broken
-    return _build(tree.body, table, text)
+    # The position rather than the offending token, in this refusal and the one
+    # at the bottom: the token here is the whole string, and a message that
+    # quotes a hundred nested parentheses back at somebody says nothing.
+    position = f"line {tree.body.lineno}, column {tree.body.col_offset + 1}"
+    if _depth(tree.body) > MAXIMUM_DEPTH:
+        raise ExpressionRefused(
+            "expression.too-deep",
+            f"the expression nests more than {MAXIMUM_DEPTH} deep, which is the "
+            f"limit; the walk that builds it is recursive and a string can "
+            f"otherwise end the process rather than be refused by it",
+            position,
+        )
+    built = _build(tree.body, table, text)
+    # Last, because it is about the whole expression rather than any one node.
+    # A long product of sums nests no deeper than the number of factors and
+    # expands to the product of their term counts, so nothing above catches it.
+    if _expansion_bound(built) > MAXIMUM_TERMS:
+        raise ExpressionRefused(
+            "expression.too-large",
+            f"the expression expands to more than {MAXIMUM_TERMS} terms, which "
+            f"is the limit",
+            position,
+        )
+    return built
+
+
+@dataclass(frozen=True)
+class Measured:
+    """What the two limits are about, for one string the grammar admits."""
+
+    depth: int
+    terms: int
+
+
+def measure(text: str, table: SymbolTable) -> Measured:
+    """Both quantities, for a string that is inside the grammar.
+
+    It exists so that the headroom under the two limits can be measured rather
+    than asserted. A string outside the grammar is refused here as it is
+    anywhere else, because a measurement of something that would never be parsed
+    is not a measurement of anything.
+    """
+    built = parse(text, table)
+    return Measured(_depth(ast.parse(text, mode="eval").body), _expansion_bound(built))
 
 
 def parse_all(
