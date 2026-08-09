@@ -1,0 +1,40 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The mistake: validity is conditional and no constraint is written down.
+# The claim is that the case is integrable under a condition, the
+# condition is missing, and what would be checked is the empty ideal,
+# which is the general question wearing another name.
+#
+# This is the one entry in the corpus refused by the row rules rather
+# than by the grammar.
+id = "conditional-with-no-constraints"
+name = "A conditional row that declares no constraints"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M1*M1 + M2*M2 + M3*M3)/(2*A1)"
+integrals = ["M1*g1 + M2*g2 + M3*g3"]
+validity = "conditional"
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[[parameters]]
+symbol = "A2"
+meaning = "a second moment, declared so a constraint has two symbols to relate"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"

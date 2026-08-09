@@ -1,0 +1,38 @@
+# A file the loader must refuse, and beside it the file one change away that
+# it must accept. The pair is what makes this entry evidence: without the
+# neighbour, a validator that refused everything would pass.
+# tests/test_refused_corpus.py names the refusal identifier this file earns.
+#
+# The attack: two hundred unary minuses. The grammar admits every one of
+# them, so nothing in it refuses this, and the walk that builds the object
+# is recursive: without a depth limit a short string ends the process
+# instead of being refused by it.
+#
+# Unary minus rather than nested parentheses, so that what refuses this is
+# this project's limit and not the language's own limit on nested
+# parentheses. A parenthesis nest deep enough is refused earlier and as
+# something else, which would leave this file proving a different guard.
+id = "nested-past-the-depth-limit"
+name = "An expression nested deeper than the limit"
+status = "active"
+revision = 1
+structure = "e3"
+hamiltonian = "(M1*M1 + M2*M2 + M3*M3)/(2*A1)"
+integrals = ["--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------(M1*M1 + M2*M2 + M3*M3)"]
+validity = "general"
+
+[[parameters]]
+symbol = "A1"
+meaning = "the moment of inertia of a spherically symmetric body"
+
+[domain]
+description = "the whole phase space, for a positive moment"
+parameter_space = ["A1 > 0"]
+
+[[provenance]]
+reference = "fixture reference, not a real citation"
+language = "de"
+location = "fixture location"
+notation = "fixture notation"
+role = "original"
+read = "directly"
