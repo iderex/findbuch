@@ -56,6 +56,13 @@ VERDICT_SURFACE: dict[str, str] = {
         "parameter into a free variable that makes a bracket vanish for the "
         "wrong reason"
     ),
+    "src/findbuch/structures.py": (
+        "the bracket every verdict is computed from, read out of data rather "
+        "than written into a checker. A structure whose Casimir stops being "
+        "checked does not produce a red row, it produces a noise floor the "
+        "numeric leg measures drift against, which is the failure that looks "
+        "most like success"
+    ),
 }
 
 # Everything else this project ships, with the reason it is not gated. An entry
@@ -118,22 +125,23 @@ REPORTED_ONLY: dict[str, str] = {
 
 # The bar, as a whole-number percentage.
 #
-# WHY THIS VALUE. The gated surface measures 97 with branch coverage today, over
-# 299 statements. The bar sits below the measurement rather than at it, because a
+# WHY THIS VALUE. The gated surface measures 98 with branch coverage today, over
+# 457 statements. The bar sits below the measurement rather than at it, because a
 # bar at the measurement reddens the first time somebody lands a statement and
 # its test in two commits, and a gate that reds for arithmetic is a gate people
 # learn to re-run rather than read.
 #
-# WHAT THAT COSTS, stated rather than left to be worked out: seven points of 299
-# statements is about twenty-one, so this bar refuses a regression of twenty-two
-# uncovered statements and permits one of twenty-one. That gap widened when the
+# WHAT THAT COSTS, stated rather than left to be worked out: eight points of 457
+# statements is about thirty-six, so this bar refuses a regression of thirty-seven
+# uncovered statements and permits one of thirty-six. That gap widened when the
 # surface did, and it is the argument for raising the bar rather than a reason
 # the bar is wrong. Raising it is a change with its own reasoning and its own
 # measurement, in this file, and not a ratchet that runs on its own.
 #
 # The measurement moved from 93 over 152 when #15 added the missing-file refusal
 # and the test that reaches it, and to 97 over 299 when #21 put the expression
-# grammar on the surface with every one of its refusal sites reached by a case.
+# grammar on the surface with every one of its refusal sites reached by a case,
+# and to 98 over 457 when #25 added the bracket the structures are read into.
 # docs/coverage.md holds a read-back at a named commit rather than a running
 # number, so the block there is still true of the commit it names and is not
 # edited to match this one.

@@ -1,0 +1,12 @@
+# so(4), where several of the Kirchhoff cases are stated.
+#
+# kappa = 1. The second vector closes on the first, so the two vectors are two
+# angular momenta and the problem is a different one from e(3) written on the
+# same six coordinates. That is exactly the confusion 0002 exists to prevent: a
+# row transcribed from a Kirchhoff paper and checked against e(3) either fails or
+# passes for the wrong reason.
+id = "so4"
+name = "so(4)"
+family = "rigid-body"
+kappa = 1
+coordinates = ["M1", "M2", "M3", "g1", "g2", "g3"]

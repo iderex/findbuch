@@ -1,0 +1,10 @@
+# so(3,1), the other sign of the same family.
+#
+# kappa = -1. Several cases in the later literature are stated here rather than
+# on so(4), and the two are one sign apart, which is the mistake that will
+# actually be made.
+id = "so31"
+name = "so(3,1)"
+family = "rigid-body"
+kappa = -1
+coordinates = ["M1", "M2", "M3", "g1", "g2", "g3"]
