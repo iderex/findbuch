@@ -147,6 +147,9 @@ files = [
     "src/findbuch/fuzz.py",
     "tools/fuzz_parser.py",
     "tests/test_fuzz_harness.py",
+    "src/findbuch/integrator.py",
+    "tools/casimir_drift.py",
+    "tests/test_integrator.py",
 ]
 
 # SymPy ships no type information and no stub package is published for it, so
@@ -155,6 +158,15 @@ files = [
 # Scoped to the one distribution rather than switched on globally.
 [[tool.mypy.overrides]]
 module = ["sympy.*"]
+ignore_missing_imports = true
+
+# mpmath ships no type information either, and it is the arbitrary precision
+# arithmetic the numeric leg is built on rather than an incidental import. The
+# cost is stated where the override is: every value crossing that boundary is
+# Any to the checker, so `Number` in src/findbuch/integrator.py names it rather
+# than leaving the reader to work out which of the annotations mean anything.
+[[tool.mypy.overrides]]
+module = ["mpmath.*"]
 ignore_missing_imports = true
 
 # Coverage. Branch coverage, over what this project ships and not over the suite

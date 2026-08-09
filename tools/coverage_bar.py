@@ -63,6 +63,13 @@ VERDICT_SURFACE: dict[str, str] = {
         "numeric leg measures drift against, which is the failure that looks "
         "most like success"
     ),
+    "src/findbuch/integrator.py": (
+        "the trajectory every numeric verdict will be taken from, and the floor "
+        "it is taken against. A method that stops conserving the declared "
+        "Casimirs does not produce a red row either: it raises the noise floor "
+        "until the floor meets the signal, and a candidate that is not "
+        "conserved then passes because everything around it is drifting too"
+    ),
 }
 
 # Everything else this project ships, with the reason it is not gated. An entry
@@ -91,6 +98,11 @@ REPORTED_ONLY: dict[str, str] = {
         "a runner over the validator above, which is on the gated surface. "
         "Gating the caller as well would count the same decisions twice and "
         "would put the bar partly on argument handling"
+    ),
+    "tools/casimir_drift.py": (
+        "a runner over the integrator above, which is on the gated surface. It "
+        "prints a measurement and decides nothing, and what a drift of that "
+        "size means is #32 rather than this file"
     ),
     "tools/check_interpreter.py": (
         "a comparison of two version strings, before any row is read"
@@ -150,7 +162,9 @@ REPORTED_ONLY: dict[str, str] = {
 # The measurement moved from 93 over 152 when #15 added the missing-file refusal
 # and the test that reaches it, and to 97 over 299 when #21 put the expression
 # grammar on the surface with every one of its refusal sites reached by a case,
-# and to 98 over 457 when #25 added the bracket the structures are read into.
+# and to 98 over 457 when #25 added the bracket the structures are read into, and
+# stayed at 98 over 789 when #30 added the integrator, whose own share of that
+# measurement is 99.
 # docs/coverage.md holds a read-back at a named commit rather than a running
 # number, so the block there is still true of the commit it names and is not
 # edited to match this one.

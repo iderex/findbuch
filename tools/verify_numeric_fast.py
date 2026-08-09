@@ -6,9 +6,11 @@ the name exists from the beginning and the leg grows into it.
 
 WHAT IT DECIDES TODAY: nothing. The numeric criterion is
 `docs/decisions/0007-numeric-criterion.md`. The structure-respecting integrator
-at arbitrary precision is #30, the initial conditions inside the declared domain
-are #31, and the drift measured against the Casimir noise floor is #32. None of
-it is in the tree.
+at arbitrary precision landed with #30 and is `findbuch.integrator`, so a
+trajectory and the drift of the declared Casimirs along it can both be produced.
+The criterion itself cannot: choosing the initial conditions inside the declared
+domain is #31 and comparing a candidate's drift against the Casimir floor is
+#32, and neither is in the tree. An integrator is not a verdict.
 
 The fast leg is not the sweep. The sweep integrates every row twice, once at the
 declared precision and once raised, takes minutes to hours, and lives outside
@@ -29,7 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 LEG = "numeric-fast"
 CRITERION_RECORD = "docs/decisions/0007-numeric-criterion.md"
-WHAT_IMPLEMENTS_IT = "#30 and #31, with the drift measurement in #32"
+WHAT_IMPLEMENTS_IT = "#31, with the drift comparison in #32, on the integrator from #30"
 
 
 def rows_in(catalogue: Path) -> list[Path]:
