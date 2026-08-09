@@ -73,6 +73,12 @@ NOT_A_JOB: dict[str, str] = {
         "out of the default run by construction, and it lands with its own "
         "harness in #34"
     ),
+    "supply-chain": (
+        "it reaches the package index and the advisory database, so it is out of "
+        "the default run and out of this workflow; it has its own workflow and "
+        "the check name `locked install and vulnerability scan`, which #53 "
+        "creates"
+    ),
     "fuzz-seeds": (
         "it has its own workflow and the check name `parser fuzz seed replay`, "
         "which #56 creates; putting it here would add an eighth name to the "

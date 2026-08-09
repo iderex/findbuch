@@ -142,6 +142,14 @@ REPORTED_ONLY: dict[str, str] = {
         "the fast numeric leg, for the same reason and with the same pair. It "
         "moves to the gated surface with #30 and #32"
     ),
+    "tools/supply_chain.py": (
+        "the dependency set rather than a row. What it decides is whether the "
+        "lockfiles still bind and whether the resolved set carries an advisory, "
+        "and neither answer can turn a wrong row green. Its own proof is the "
+        "self-test, which mutates the real lockfile three ways and asks which "
+        "of pip and this project refused each one, and a ratio over it would "
+        "count the printing rather than the refusing"
+    ),
 }
 
 # The bar, as a whole-number percentage.

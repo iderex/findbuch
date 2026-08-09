@@ -9,3 +9,6 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+
+# The self-test writes mutated copies of the lockfile here and reads them back.
+.supply-chain-selftest/

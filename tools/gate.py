@@ -160,6 +160,24 @@ LEGS: tuple[Leg, ...] = (
         cost="seconds today, and it grows with the suite",
     ),
     Leg(
+        name="supply-chain",
+        what="the lockfiles bind, and the resolved set carries no known advisory",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "supply_chain.py"),
+            "--check",
+        ),
+        cost=(
+            "it resolves both lockfiles against the package index and reads the "
+            "advisory database, so it needs the network and takes tens of "
+            "seconds. Out of the default run for that reason, because the rest "
+            "of this gate decides everything from bytes in the tree and a "
+            "contributor working offline can still run all of it. Ask for it "
+            "with --with-scan."
+        ),
+        in_default_run=False,
+    ),
+    Leg(
         name="sweep",
         what="the full verification sweep over every row at raised precision",
         command=(sys.executable, str(SWEEP_ENTRY_POINT)),
@@ -181,7 +199,14 @@ def run_leg(leg: Leg) -> tuple[int, float]:
     return completed.returncode, time.monotonic() - started
 
 
-def selected(names: list[str] | None, with_sweep: bool) -> list[Leg]:
+def selected(names: list[str] | None, opted_in: set[str]) -> list[Leg]:
+    """The legs to run: the default set, plus whichever were asked for by name.
+
+    `opted_in` holds leg names rather than a flag per leg, so that a second leg
+    outside the default run does not silently join the first one's flag. That is
+    what a single boolean did: `--with-sweep` would have started the network scan
+    as well, and a run asked for one thing would have done two.
+    """
     if names:
         by_name = {leg.name: leg for leg in LEGS}
         unknown = [name for name in names if name not in by_name]
@@ -189,7 +214,7 @@ def selected(names: list[str] | None, with_sweep: bool) -> list[Leg]:
             message = f"gate: no such leg: {', '.join(unknown)}"
             raise SystemExit(message)
         return [by_name[name] for name in names]
-    return [leg for leg in LEGS if leg.in_default_run or with_sweep]
+    return [leg for leg in LEGS if leg.in_default_run or leg.name in opted_in]
 
 
 def report_not_run(legs: list[Leg], reason: str) -> None:
@@ -213,6 +238,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="also run the full verification sweep",
     )
+    parser.add_argument(
+        "--with-scan",
+        action="store_true",
+        help="also run the locked install and the vulnerability scan, which "
+        "reach the network",
+    )
     arguments = parser.parse_args(argv)
 
     if arguments.list:
@@ -221,7 +252,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{leg.name}\t{default}\t{leg.what}")
         return 0
 
-    asked_for = selected(arguments.leg, arguments.with_sweep)
+    opted_in = set()
+    if arguments.with_sweep:
+        opted_in.add("sweep")
+    if arguments.with_scan:
+        opted_in.add("supply-chain")
+    asked_for = selected(arguments.leg, opted_in)
     not_asked_for = [leg for leg in LEGS if leg not in asked_for]
     unavailable = [leg for leg in asked_for if not leg.is_available()]
     runnable = [leg for leg in asked_for if leg.is_available()]

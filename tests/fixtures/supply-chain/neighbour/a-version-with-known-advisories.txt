@@ -1,0 +1,7 @@
+# The same file at the version the advisories above name as the fix.
+#
+# THIS HALF IS A CLAIM ABOUT THE ADVISORY DATABASE ON THE DAY IT RUNS, not about
+# anything in this tree. A new advisory against this version turns the self-test
+# red for a reason that has nothing to do with the checker, and the repair is to
+# raise the pin here rather than to weaken the assertion.
+jinja2==3.1.6
