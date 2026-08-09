@@ -138,7 +138,17 @@ files = [
     "tests/test_check_names.py",
     "tests/test_verification_legs.py",
     ".github/isolation/probe.py",
+    "src/findbuch/expression.py",
+    "tests/test_expression_grammar.py",
 ]
+
+# SymPy ships no type information and no stub package is published for it, so
+# the checker cannot see through the import. The alternative to this override is
+# `Any` spreading out of every call, which strict mode would then not report.
+# Scoped to the one distribution rather than switched on globally.
+[[tool.mypy.overrides]]
+module = ["sympy.*"]
+ignore_missing_imports = true
 
 # Coverage. Branch coverage, over what this project ships and not over the suite
 # that exercises it: a number that counted the tests would rise when a test was
