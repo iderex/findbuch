@@ -72,6 +72,12 @@ REPORTED_ONLY: dict[str, str] = {
     "src/findbuch/__init__.py": (
         "the package marker. It decides nothing and holds no path a row travels"
     ),
+    "src/findbuch/fuzz.py": (
+        "the fuzz harness. It decides whether an outcome of the parser was one "
+        "of the two admitted ones, which is a statement about this project's "
+        "own boundary rather than about a row, and its own proof is the suite "
+        "that feeds it a parser misbehaving on purpose rather than a ratio"
+    ),
     "src/findbuch/invariants.py": (
         "a scan of this repository's own source. It decides whether a spelling "
         "is present in a tracked file, never anything about a row, and its own "
@@ -95,6 +101,9 @@ REPORTED_ONLY: dict[str, str] = {
     "tools/floor.py": (
         "the dependency floor build. It decides which versions a run installs "
         "and nothing about a row"
+    ),
+    "tools/fuzz_parser.py": (
+        "a runner over the harness above, for the same reason as the harness"
     ),
     "tools/gate.py": (
         "the gate's own leg list and its runner. It decides what runs, and "

@@ -73,6 +73,11 @@ NOT_A_JOB: dict[str, str] = {
         "out of the default run by construction, and it lands with its own "
         "harness in #34"
     ),
+    "fuzz-seeds": (
+        "it has its own workflow and the check name `parser fuzz seed replay`, "
+        "which #56 creates; putting it here would add an eighth name to the "
+        "seven this file is the interface for"
+    ),
 }
 
 # Spellings a job may not contain. Each is a tool some leg already wraps, and

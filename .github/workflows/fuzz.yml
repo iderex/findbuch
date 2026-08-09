@@ -1,0 +1,90 @@
+# Replay the parser's seed corpus (#56). Part of the parity mapping in
+# docs/quality-parity.md, where the target compiles its fuzz harness in the
+# gated job and replays a committed corpus there while the coverage-guided run
+# stays outside. The split carries over; the surface does not, because here it
+# is one parser rather than a plugin's whole input path.
+#
+# WHY THIS IS NOT A JOB IN gate.yml. The seven check names there are an
+# interface that #57 makes required on the default branch, and adding an eighth
+# to that file would change it. tests/test_check_names.py names this leg as one
+# the gate workflow deliberately does not run, with that reason, so the leg
+# cannot fall out of both files in silence.
+#
+# WHAT IS REPLAYED is not listed here. A list in a workflow drifts against the
+# directory that decides it, and the directory is tests/fixtures/fuzz/seeds.
+# Print what a run covered:
+#
+#   python tools/fuzz_parser.py
+#
+# BOTH EMPTY ANSWERS FAIL. A corpus directory that stopped being checked out and
+# a corpus that happens to hold nothing are refusals in findbuch.fuzz rather than
+# a green run over zero seeds, which is the way a job like this stops covering
+# anything without a name moving.
+#
+# WHAT THIS JOB IS NOT. It is not a fuzzing run. It replays what is committed,
+# which costs seconds and catches a change that makes a known-hostile input
+# crash rather than refuse. The search that derives new inputs is asked for with
+# `--search N` and nothing here passes it; it is deterministic and it is not
+# coverage guided, and findbuch.fuzz says so where it is implemented.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Fuzz
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the job reads the checked-out source and the corpus, and writes
+# only into the runner.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. The verdict depends only on the
+# source and the corpus at that ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parser-fuzz-seed-replay:
+    name: parser fuzz seed replay
+    runs-on: ubuntu-latest
+    # A seed that hangs is not reported by the harness, which runs in one
+    # process and does not interrupt anything. This is what reports it, and it
+    # is short because the replay takes seconds.
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # .python-version is the one place the interpreter version is
+          # written, so this job reads it rather than repeating the number.
+          python-version-file: .python-version
+
+      - name: Install the locked runtime set
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --no-deps --editable .
+
+      - name: Prove the harness reports a finding before trusting that it found none
+        # The failure path first, and it is the whole value of this job: a
+        # harness whose finding branch nothing executes reports success for a
+        # reason nobody has checked. The suite here feeds the property a parser
+        # that raises, one that refuses with an identifier nobody declared, and
+        # an empty corpus, and requires each to be reported.
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p test_fuzz_harness.py -v
+
+      - name: Replay every committed seed
+        run: python tools/gate.py --leg fuzz-seeds
