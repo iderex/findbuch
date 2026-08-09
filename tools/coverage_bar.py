@@ -95,6 +95,17 @@ REPORTED_ONLY: dict[str, str] = {
         "is decided by whether the suite ran at all, which is the leg's verdict "
         "and not a percentage"
     ),
+    "tools/verify_symbolic_fast.py": (
+        "the fast symbolic leg while it still has no criterion behind it. The "
+        "one thing it decides is that a row it cannot verify is refused rather "
+        "than passed over, and that decision is proven by the fixture pair in "
+        "tests/test_verification_legs.py rather than by a ratio. It moves to "
+        "the gated surface with #26, which is what puts a verdict in it"
+    ),
+    "tools/verify_numeric_fast.py": (
+        "the fast numeric leg, for the same reason and with the same pair. It "
+        "moves to the gated surface with #30 and #32"
+    ),
 }
 
 # The bar, as a whole-number percentage.

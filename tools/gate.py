@@ -107,6 +107,27 @@ LEGS: tuple[Leg, ...] = (
         cost="proportional to the number of rows, seconds",
     ),
     Leg(
+        name="symbolic-fast",
+        what="every catalogue row against the symbolic criterion, the short way",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "verify_symbolic_fast.py"),
+        ),
+        cost="seconds over an empty catalogue, and it grows with the rows",
+    ),
+    Leg(
+        name="numeric-fast",
+        what="every catalogue row against the numeric criterion, the short way",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "verify_numeric_fast.py"),
+        ),
+        cost=(
+            "seconds over an empty catalogue. This is the short leg that belongs "
+            "on a pull request, and it is not the sweep below."
+        ),
+    ),
+    Leg(
         name="invariants",
         what="this repository's greppable invariants, over the paths each declares",
         command=(

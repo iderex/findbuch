@@ -1,0 +1,231 @@
+# The gate on a pull request, one check name per job (#17).
+#
+# THE CHECK NAMES ARE AN INTERFACE. #57 makes them required on the default
+# branch and the branch protection matches them literally, so a name chosen
+# carelessly here and changed later removes a required check without anything
+# saying so. tests/test_check_names.py holds the seven this file may produce and
+# reds when a job name moves, is added or is dropped.
+#
+# EVERY JOB RUNS ONE LEG OF tools/gate.py AND SPELLS NO STEP OF ITS OWN. A
+# contributor runs `python tools/gate.py` before pushing and each job here runs
+# `python tools/gate.py --leg <name>` from the same leg list. Two spellings of
+# one procedure drift, and the one that drifts is the one nobody runs by hand.
+# That is why there is no `ruff check` and no `pytest` anywhere below.
+#
+# WHAT NO JOB HERE RUNS, so that a reader does not take the seven green checks
+# for the whole gate. The `interpreter` leg is not a job: every job here reads
+# .python-version through setup-python, so the pin is applied rather than
+# checked, and the leg is what a contributor's own machine needs. The
+# `invariants` leg has its own workflow and its own name,
+# `Enforce greppable invariants`, and moving it here would rename a check that
+# already exists. The `sweep` leg is out of the default run by construction and
+# lands with its harness in #34. tests/test_check_names.py carries that list and
+# refuses a leg that is in neither it nor a job.
+#
+# THIS WORKFLOW MAKES NOTHING REQUIRED. Requiring a check is a repository
+# setting and it belongs to #57, after the names have run on real pull requests
+# long enough to know they are stable.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: every job reads the checked-out source and writes only into the
+# runner.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. Every verdict below depends only on
+# the source at that ref, so re-running from scratch is both cheap and correct.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      - name: Run the tests leg
+        run: python tools/gate.py --leg tests
+
+  lint-and-format:
+    name: lint and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      # Two legs under one name. The seven names are fixed by #17 and this is
+      # the one that covers two of them; the alternative is an eighth name this
+      # issue does not declare.
+      - name: Run the lint and format legs
+        run: python tools/gate.py --leg lint --leg format
+
+  types:
+    name: types
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      - name: Run the types leg
+        run: python tools/gate.py --leg types
+
+  catalogue-schema:
+    name: catalogue schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      # The canonical-form leg and the schema leg both decide whether a row is
+      # well formed, and a row that passes one and fails the other is not a
+      # catalogue this check should call green.
+      - name: Run the rows and schema legs
+        run: python tools/gate.py --leg rows --leg schema
+
+  symbolic-verification-fast:
+    name: symbolic verification (fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      # Green here today means the catalogue is empty and says so in those
+      # words. tools/verify_symbolic_fast.py refuses a row it cannot decide
+      # rather than passing over it, so this name cannot go green across a row
+      # nothing verified. #26 is what puts a verdict behind it.
+      - name: Run the symbolic-fast leg
+        run: python tools/gate.py --leg symbolic-fast
+
+  numeric-verification-fast:
+    name: numeric verification (fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      # The fast leg, not the sweep. The sweep is out of the default run and
+      # lands with its own harness in #34.
+      - name: Run the numeric-fast leg
+        run: python tools/gate.py --leg numeric-fast
+
+  headless-and-unprivileged:
+    name: headless and unprivileged
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # No display, for the whole job. A plotting import at module scope is the
+    # usual way this breaks and it breaks on somebody else's machine.
+    env:
+      DISPLAY: ""
+      MPLBACKEND: Agg
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked runtime and gate sets
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+      - name: State the conditions the suite is about to run under
+        # Read rather than assumed. A job that says it is unprivileged and runs
+        # as uid 0 is worse than one that says nothing.
+        run: |
+          echo "uid=$(id -u) user=$(id -un) DISPLAY='${DISPLAY-unset}'"
+          test "$(id -u)" -ne 0
+      - name: Run the same tests leg, with no display and as a non-root user
+        run: python tools/gate.py --leg tests
+      # WHAT THIS JOB DOES NOT SAY. Outbound network is NOT blocked here. The
+      # runner has working DNS and a working route the whole time, so a test
+      # that reached the network would pass this job. #19 is where the run with
+      # outbound access actually blocked belongs, and it is not this job and is
+      # not offered as it. Nor is this a proof that nothing could escalate: the
+      # runner user has passwordless sudo available, and all that is measured
+      # above is that the suite was not started as root.
+      - name: Say what was not blocked
+        if: always()
+        run: |
+          echo "outbound network was NOT blocked in this job; that is #19"
