@@ -48,6 +48,14 @@ VERDICT_SURFACE: dict[str, str] = {
         "past these is treated as well formed by everything downstream, so a "
         "refusal that quietly stops firing is a wrong row reported as a good one"
     ),
+    "src/findbuch/expression.py": (
+        "the grammar, which 0004 calls the boundary and says there is no sandbox "
+        "behind. Every formula in every row passes through it, and a branch that "
+        "stops refusing admits either code the file supplied or an identifier "
+        "nobody declared; the second one is quieter and turns a mistyped "
+        "parameter into a free variable that makes a bracket vanish for the "
+        "wrong reason"
+    ),
 }
 
 # Everything else this project ships, with the reason it is not gated. An entry
@@ -110,22 +118,25 @@ REPORTED_ONLY: dict[str, str] = {
 
 # The bar, as a whole-number percentage.
 #
-# WHY THIS VALUE. The gated surface measures 94 with branch coverage today, over
-# 154 statements. The bar sits below the measurement rather than at it, because a
+# WHY THIS VALUE. The gated surface measures 97 with branch coverage today, over
+# 299 statements. The bar sits below the measurement rather than at it, because a
 # bar at the measurement reddens the first time somebody lands a statement and
 # its test in two commits, and a gate that reds for arithmetic is a gate people
 # learn to re-run rather than read.
 #
-# WHAT THAT COSTS, stated rather than left to be worked out: four points of 154
-# statements is about six, so this bar refuses a regression of seven uncovered
-# statements and permits one of six. Raising it is a change with its own
-# reasoning and its own measurement, in this file, and not a ratchet that runs
-# on its own.
+# WHAT THAT COSTS, stated rather than left to be worked out: seven points of 299
+# statements is about twenty-one, so this bar refuses a regression of twenty-two
+# uncovered statements and permits one of twenty-one. That gap widened when the
+# surface did, and it is the argument for raising the bar rather than a reason
+# the bar is wrong. Raising it is a change with its own reasoning and its own
+# measurement, in this file, and not a ratchet that runs on its own.
 #
 # The measurement moved from 93 over 152 when #15 added the missing-file refusal
-# and the test that reaches it. docs/coverage.md holds a read-back at a named
-# commit rather than a running number, so the block there is still true of the
-# commit it names and is not edited to match this one.
+# and the test that reaches it, and to 97 over 299 when #21 put the expression
+# grammar on the surface with every one of its refusal sites reached by a case.
+# docs/coverage.md holds a read-back at a named commit rather than a running
+# number, so the block there is still true of the commit it names and is not
+# edited to match this one.
 BAR = 90
 
 

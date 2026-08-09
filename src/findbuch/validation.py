@@ -36,6 +36,8 @@ from typing import Any
 
 import jsonschema
 
+from findbuch.expression import SymbolTable, parse_all
+
 PACKAGE_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_ROOT.parent.parent
 SCHEMA_PATH = REPO_ROOT / "schema" / "row-1.0.schema.json"
@@ -52,6 +54,22 @@ NOT_A_SYMBOL = frozenset(
 TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 KINDS_NEEDING_CONSTRAINTS = frozenset({"conditional", "invariant-relation"})
+
+# The fields whose strings are formulas, and therefore the fields the parser
+# in findbuch.expression is applied to.
+#
+# WHAT IS NOT ON THIS LIST, and why, because a reader will otherwise take a
+# clean row as a row whose every string was parsed. `domain.phase_space` and
+# `domain.parameter_space` hold inequalities, `A1 > 0` being the shape, and a
+# comparison is not in the admitted grammar. Reducing against a domain is #27
+# for the symbolic side and #31 for the numeric one, and whatever reads those
+# strings is what will decide their form. Nothing here checks them at all.
+EXPRESSION_FIELDS: tuple[str, ...] = (
+    "hamiltonian",
+    "integrals",
+    "constraints",
+    "conditions",
+)
 
 
 @dataclass(frozen=True)
@@ -279,6 +297,52 @@ def check_parameters_declared(
     return []
 
 
+def _formulas(document: Mapping[str, Any], field: str) -> list[tuple[str, str]]:
+    """The formulas in one field, each with where in the row it sits."""
+    value = document.get(field)
+    if isinstance(value, str):
+        return [(value, field)]
+    if isinstance(value, list):
+        return [
+            (entry, f"{field}[{index}]")
+            for index, entry in enumerate(value)
+            if isinstance(entry, str)
+        ]
+    return []
+
+
+def check_expressions_parse(
+    document: Mapping[str, Any], registry: StructureRegistry
+) -> list[Refusal]:
+    """0004: every formula is inside the grammar and names only declared symbols.
+
+    The symbol table is built first, from the coordinates of the named structure
+    and the parameters this row declares, so an identifier outside it is an error
+    naming the identifier rather than a new free variable. findbuch.expression
+    holds the grammar and the argument for it.
+
+    The rule does not run when the structure does not resolve or declares no
+    coordinates, and that is why `RowResult.expressions_rule_evaluated` exists. A
+    table missing its coordinates would refuse every coordinate in every formula,
+    which is a pile of refusals about the structure file wearing the identifier
+    of a refusal about the row.
+    """
+    named = document.get("structure")
+    if not isinstance(named, str):
+        return []
+    if not registry.knows(named) or not registry.coordinates_known(named):
+        return []
+    table = SymbolTable.of(registry.coordinates(named), _declared_symbols(document))
+    refusals: list[Refusal] = []
+    for field in EXPRESSION_FIELDS:
+        for text, where in _formulas(document, field):
+            _, refused = parse_all([text], table)
+            for refusal in refused:
+                location = f"{where}, {refusal.where}" if refusal.where else where
+                refusals.append(Refusal(refusal.code, refusal.message, location))
+    return refusals
+
+
 def check_identifier_matches_file(
     document: Mapping[str, Any], file_stem: str
 ) -> list[Refusal]:
@@ -328,6 +392,7 @@ def validate_row(
     refusals.extend(check_constraints_match_validity(document))
     refusals.extend(check_integrals_match_validity(document))
     refusals.extend(check_parameters_declared(document, registry))
+    refusals.extend(check_expressions_parse(document, registry))
     refusals.extend(check_supersession_points_somewhere(document))
     return refusals
 
@@ -337,6 +402,12 @@ class RowResult:
     path: Path
     refusals: tuple[Refusal, ...]
     parameters_rule_evaluated: bool
+    # Both flags answer the same question today, whether the named structure
+    # resolved and declared its coordinates, and they are separate because they
+    # are about two rules that happen to share a precondition. A run reporting
+    # one of them as if it were the other is the shape this repository keeps
+    # finding, so neither is derived from the other.
+    expressions_rule_evaluated: bool = False
 
     @property
     def valid(self) -> bool:
@@ -378,7 +449,12 @@ def validate_file(path: Path, registry: StructureRegistry) -> RowResult:
         and registry.coordinates_known(named)
     )
     refusals = validate_row(document, file_stem=path.stem, registry=registry)
-    return RowResult(path, tuple(refusals), parameters_rule_evaluated=evaluated)
+    return RowResult(
+        path,
+        tuple(refusals),
+        parameters_rule_evaluated=evaluated,
+        expressions_rule_evaluated=evaluated,
+    )
 
 
 def validate_catalogue(catalogue: Path, registry: StructureRegistry) -> list[RowResult]:
