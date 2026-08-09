@@ -137,25 +137,34 @@ MAXIMUM_TERMS = 4096
 # MAXIMUM_LENGTH is how long the string may be, and it is checked before the
 # string is handed to anything. The depth above is measured on a tree, and the
 # tree is built by the language's own parser, which has no such limit of its own
-# and gives out on a long enough input. Measured on the interpreter
-# .python-version pins:
+# and gives out on a long enough input. What it gives out with, and where,
+# depends on the interpreter:
 #
-#     python -c "import ast; ast.parse('-'*5000 + 'M1', mode='eval')"     parses
-#     python -c "import ast; ast.parse('-'*20000 + 'M1', mode='eval')"    MemoryError
+#     ast.parse('-'*20000 + 'M1', mode='eval')   MemoryError    3.14, the pin
+#     ast.parse('-'*4095 + 'M1', mode='eval')    RecursionError 3.11, the floor
 #
-# A MemoryError raised inside the parser is not a refusal. It is the boundary
-# falling over, which is the thing the depth limit exists to prevent, one step
-# further out. Nothing catches it afterwards either: a catch around the parser
-# would be a branch nothing in this tree can now reach, and an unreachable
-# branch is not a guard.
+# Neither is a refusal. Both are the boundary falling over, which is what the
+# depth limit exists to prevent, one step further out. Nothing catches them
+# afterwards either: a catch around the parser would be a branch nothing in this
+# tree can reach, and an unreachable branch is not a guard.
 #
-# 4096 characters is far above any transcribed formula and, by the measurement
-# above, far below what troubles the parser. WHAT IT COSTS: a formula longer
-# than this is refused before it is read, however legal it is. Nothing in the
-# grammar makes such a formula impossible, so if the catalogue ever holds one
-# that is an argument for raising this number here rather than for working
-# around it.
-MAXIMUM_LENGTH = 4096
+# So the number is not chosen for how long a formula might be. It is chosen so
+# that NO string this module hands to that parser can reach its capacity on the
+# lowest interpreter the project claims. One character can open at most one level
+# of nesting, `-` being the character that does it, so a string of N characters
+# nests at most N deep, and the tree is built by recursion bounded by the
+# interpreter's own recursion limit, which is 1000 by default. 512 sits under
+# that with room for the frames a caller has already used. It is not asserted
+# from here: `tests/test_expression_bounds.py` parses a string at the limit, and
+# that test runs on the floor interpreter as well as on the pinned one, so the
+# floor is where the claim is actually decided.
+#
+# WHAT IT COSTS: a formula longer than 512 characters is refused before it is
+# read, however legal it is. Nothing in the grammar makes such a formula
+# impossible, and the longest in this tree is well inside it. If the catalogue
+# ever holds one that is an argument for raising this number, and it is a real
+# argument only together with a measurement of the parser it has to survive.
+MAXIMUM_LENGTH = 512
 
 
 class ExpressionRefused(Exception):  # noqa: N818

@@ -106,8 +106,8 @@ class TheDepthLimitRefusesAtItsEdge(unittest.TestCase):
         # The case the limit exists for: without it the recursive walk reaches
         # this before anything decides anything about it. Well inside the length
         # limit, so what refuses it is the depth and not the length.
-        self.assertLess(len(nesting(1000)), MAXIMUM_LENGTH)
-        self.assertEqual(refusal_code(nesting(1000)), "expression.too-deep")
+        self.assertLess(len(nesting(400)), MAXIMUM_LENGTH)
+        self.assertEqual(refusal_code(nesting(400)), "expression.too-deep")
 
 
 class TheLengthLimitStandsInFrontOfTheParser(unittest.TestCase):
@@ -121,21 +121,30 @@ class TheLengthLimitStandsInFrontOfTheParser(unittest.TestCase):
     def test_a_string_the_parser_cannot_survive_is_refused_rather_than_fatal(
         self,
     ) -> None:
-        # Twenty thousand is measured rather than picked: on the interpreter
-        # .python-version pins, `ast.parse` raises MemoryError at that size and
-        # parses at five thousand. A MemoryError out of the parser is not a
-        # refusal, it is the boundary falling over.
+        # Twenty thousand is measured rather than picked: `ast.parse` raises
+        # MemoryError at that size on the pinned interpreter, and RecursionError
+        # at four thousand on the floor one. Neither is a refusal, both are the
+        # boundary falling over, and what stands in front of them is the length.
         self.assertEqual(refusal_code(nesting(20000)), "expression.too-long")
+
+    def test_a_string_at_the_limit_is_parsed_and_not_survived(self) -> None:
+        # THE CASE THE NUMBER IS CHOSEN FOR, and the reason it is a test rather
+        # than a sentence: it decides whether the limit sits under the parser's
+        # capacity, and that capacity differs between interpreters. This runs on
+        # the floor as well as on the pin, so the floor is where it is settled.
+        # A refusal here means the string reached this project's depth limit,
+        # which means the language's parser built the tree first.
+        at_the_limit = "-" * (MAXIMUM_LENGTH - 2) + "M1"
+        self.assertEqual(len(at_the_limit), MAXIMUM_LENGTH)
+        self.assertEqual(refusal_code(at_the_limit), "expression.too-deep")
 
     def test_the_length_limit_bites_before_the_depth_limit(self) -> None:
         # The near-miss, and it is a change of identifier rather than a change
         # from refused to admitted: both of these are refused, and which limit
-        # does it moves at the edge. Nothing this long is admissible anyway,
-        # because an expression of MAXIMUM_DEPTH levels cannot be spelled in
-        # MAXIMUM_LENGTH characters without exceeding the depth first.
+        # does it moves at the edge.
         just_over = "-" * (MAXIMUM_LENGTH - 1) + "M1"
         just_under = "-" * (MAXIMUM_LENGTH - 2) + "M1"
-        self.assertEqual(len(just_under), MAXIMUM_LENGTH)
+        self.assertEqual(len(just_over), MAXIMUM_LENGTH + 1)
         self.assertEqual(refusal_code(just_over), "expression.too-long")
         self.assertEqual(refusal_code(just_under), "expression.too-deep")
 
