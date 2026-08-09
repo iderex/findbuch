@@ -1,0 +1,82 @@
+# The suite with no display, no privilege and no network (#19).
+#
+# This is the run #19's done-condition asks for, and it is a job rather than a
+# thing somebody did once on a laptop, because the requirement is a birth
+# requirement: the usual way it breaks is a plotting import at module scope or a
+# fetch added for convenience, and both of those pass on the machine of the
+# person who wrote them.
+#
+# WHAT IS DIFFERENT FROM THE `headless and unprivileged` CHECK IN Gate. That job
+# runs the suite with no display and as a non-root user on the runner, and its
+# own output says that outbound network is NOT blocked there. This one detaches
+# the network namespace. The two are not the same claim and this workflow does
+# not replace that check; it is the stronger half, and it is separate so that
+# the seven check names #17 fixed stay seven.
+#
+# THE CONDITIONS ARE READ, NOT ASSERTED. .github/isolation/probe.py runs first,
+# inside the container, and refuses when any of the three does not hold. Without
+# it, deleting `--network none` below would leave a green check whose name still
+# said the network was blocked, and nothing would notice until somebody added a
+# test that fetched something. The step after the run proves the probe bites by
+# running it with the network attached and requiring a refusal.
+#
+# THE BUILD HAS THE NETWORK AND THE RUN DOES NOT. Everything that needs a route
+# out happens in .github/isolation/Dockerfile: the base image, the apt index and
+# the locked sets. The suite runs from the built image with the namespace
+# detached.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Isolation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the job reads the checked-out source, builds an image inside the
+# runner and pushes it nowhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. The verdict depends only on the
+# source at that ref, so re-running from scratch is both cheap and correct.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated:
+    name: no display, no privilege, no network
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          # The checkout keeps .git because two tests in the suite derive what
+          # they are about from `git ls-files`.
+          persist-credentials: false
+
+      - name: Build the image that carries the locked sets
+        # The only step with a route out. Everything the suite needs is resolved
+        # here, so that the run below can have nothing.
+        run: docker build --file .github/isolation/Dockerfile --tag findbuch-isolation .
+
+      - name: Run the full default suite with the network namespace detached
+        run: docker run --rm --network none findbuch-isolation
+
+      - name: Prove the probe refuses when the network is not detached
+        # The near-miss this job is most exposed to is somebody dropping
+        # `--network none` from the line above, which changes nothing visible.
+        # Here the same image runs with the default network and the probe has to
+        # refuse; if it passes, this step fails and says which way round it went.
+        run: |
+          if docker run --rm findbuch-isolation python .github/isolation/probe.py; then
+            echo "::error::the probe passed with the network attached, so it is not reading the conditions it claims to read"
+            exit 1
+          fi
+          echo "the probe refused with the network attached, which is what makes the run above evidence"

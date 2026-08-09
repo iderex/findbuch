@@ -1,0 +1,23 @@
+# What never goes into the build context of .github/isolation/Dockerfile.
+#
+# `.git` is deliberately absent from this list. Two tests in the suite derive
+# what they are about from `git ls-files`, so an image without the repository
+# would fail them for a reason that is not what the container is proving.
+#
+# Everything below is either a local environment, a build product or a cache. A
+# virtual environment built on one operating system and copied into a Linux
+# image is the worst of them: it would shadow the interpreter the image pins
+# with binaries that cannot run there.
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
