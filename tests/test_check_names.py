@@ -79,6 +79,11 @@ NOT_A_JOB: dict[str, str] = {
         "the check name `locked install and vulnerability scan`, which #53 "
         "creates"
     ),
+    "package": (
+        "it builds the distribution and installs it, so it reaches the package "
+        "index and is out of the default run; it has its own workflow and the "
+        "three check names `build`, `package` and `SBOM`, which #51 creates"
+    ),
     "fuzz-seeds": (
         "it has its own workflow and the check name `parser fuzz seed replay`, "
         "which #56 creates; putting it here would add an eighth name to the "

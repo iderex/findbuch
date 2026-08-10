@@ -1,0 +1,141 @@
+# Build, package and generate the bill of materials (#51).
+#
+# THREE NAMES BECAUSE THERE ARE THREE QUESTIONS. Whether the tree builds,
+# whether what it built installs and imports somewhere that is not the checkout,
+# and what the artefact is made of. A distribution that builds and does not
+# install is an ordinary outcome, so the second name exists rather than being
+# folded into the first.
+#
+# WHY THIS IS NOT A JOB IN gate.yml. Every job there decides from bytes in the
+# checkout, so a contributor with no network runs the whole of that gate. Each
+# job here resolves against the package index, which is why `package` is out of
+# the gate's default run and named in tests/test_check_names.py beside the seven
+# names that workflow may produce, so this file cannot quietly become an eighth.
+#
+# THE SELF-TEST RUNS FIRST in the two jobs that take a verdict. An import check
+# that has stopped importing reports a working package and looks exactly like
+# one that works, and a validator that has stopped reading the schema accepts
+# any bytes at all. Both failures are invisible from the green tick, so the
+# things that must be refused are refused first, in the same job.
+#
+# WHAT A GREEN TICK HERE DOES NOT SAY, and the last step of `package` prints it
+# rather than leaving it to be inferred. The wheel carries no `schema/` and no
+# `structures/`, so an installed package imports and then cannot read either.
+# `package` MEASURES that and does not refuse it, because the repair is a change
+# to how the package is laid out rather than to a workflow, and it is #84.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: every job reads the checked-out source, builds into the runner and
+# writes nothing anywhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. Every verdict here depends on the
+# source at that ref, on the index and on nothing else, and re-running from
+# scratch is the cheaper of the two ways to be sure.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked build set
+        # Its own set, and the build backend is in it. tools/package.py passes
+        # --no-isolation, so setuptools comes from this lockfile with a hash
+        # behind it rather than from the index unpinned.
+        run: |
+          python -m pip install --require-hashes --requirement requirements-package.lock
+      - name: Build the distribution
+        run: python tools/package.py --build
+      - name: Keep the distribution with the run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distribution
+          path: dist/
+          if-no-files-found: error
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked build set
+        run: |
+          python -m pip install --require-hashes --requirement requirements-package.lock
+      - name: Prove the import check refuses what it names
+        run: python tools/package.py --selftest
+      - name: Install the built wheel into a fresh environment and import it
+        # It builds here as well rather than reading the other job's artefact,
+        # so this name answers for both halves of its own question and cannot go
+        # green over a wheel that was built somewhere this job did not read.
+        run: python tools/package.py --build --install
+      - name: Say what a green tick here does not cover
+        if: always()
+        run: |
+          echo "this job did NOT check that the schema and the structure files"
+          echo "travel with the wheel; the step above measures both and prints"
+          echo "what it found, and #84 is what makes that a refusal"
+
+  SBOM:
+    name: SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked build set
+        run: |
+          python -m pip install --require-hashes --requirement requirements-package.lock
+      - name: Prove the validation refuses what it names
+        run: python tools/package.py --selftest
+      - name: Write the bill of materials and validate it
+        run: python tools/package.py --sbom
+      - name: Keep the bill of materials with the run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bill-of-materials
+          path: dist/sbom.cdx.json
+          if-no-files-found: error
+      - name: Say what a green tick here does not cover
+        if: always()
+        run: |
+          echo "the document describes the resolved RUNTIME set in"
+          echo "requirements.lock. It does not describe the gate set, the scan"
+          echo "set or this build set, and nothing here re-resolves against the"
+          echo "bounds pyproject.toml declares"

@@ -178,6 +178,25 @@ LEGS: tuple[Leg, ...] = (
         in_default_run=False,
     ),
     Leg(
+        name="package",
+        what="the artefact builds, installs into a fresh environment, and has a "
+        "bill of materials that validates",
+        command=(
+            sys.executable,
+            str(REPO_ROOT / "tools" / "package.py"),
+            "--all",
+        ),
+        cost=(
+            "it builds the distribution, makes a fresh environment and installs "
+            "the locked runtime set into it, and resolves the bill of materials "
+            "against the package index, so it needs the network and takes a "
+            "minute or two. Out of the default run for the same reason the scan "
+            "is: the rest of this gate decides everything from bytes in the "
+            "tree. Ask for it with --with-package."
+        ),
+        in_default_run=False,
+    ),
+    Leg(
         name="sweep",
         what="the full verification sweep over every row at raised precision",
         command=(sys.executable, str(SWEEP_ENTRY_POINT)),
@@ -239,6 +258,12 @@ def main(argv: list[str] | None = None) -> int:
         help="also run the full verification sweep",
     )
     parser.add_argument(
+        "--with-package",
+        action="store_true",
+        help="also build the artefact, install it into a fresh environment and "
+        "write the bill of materials, which reach the network",
+    )
+    parser.add_argument(
         "--with-scan",
         action="store_true",
         help="also run the locked install and the vulnerability scan, which "
@@ -257,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
         opted_in.add("sweep")
     if arguments.with_scan:
         opted_in.add("supply-chain")
+    if arguments.with_package:
+        opted_in.add("package")
     asked_for = selected(arguments.leg, opted_in)
     not_asked_for = [leg for leg in LEGS if leg not in asked_for]
     unavailable = [leg for leg in asked_for if not leg.is_available()]
