@@ -1,0 +1,11 @@
+# The subject. One comparison, which is the whole of what it decides, so the
+# table in tools/mutation_sample.py derives exactly one mutant from this file
+# and the pair below is about that one mutant rather than about a population.
+#
+# The same bytes are in the neighbour directory. What differs there is the
+# suite, because what a mutation run decides is whether the SUITE noticed, and
+# a pair that changed the subject would be testing something else.
+
+
+def admits(value: int) -> bool:
+    return value < 10

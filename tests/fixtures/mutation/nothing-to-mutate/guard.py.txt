@@ -1,0 +1,8 @@
+# A module the table matches nothing in. It is here so that "no mutant was
+# derived" can be produced deliberately and asserted to be a refusal, because
+# a surface that stopped being read prints the same zero as a surface with
+# nothing in it, and a run over no mutant is not a run that found nothing.
+
+
+def name() -> str:
+    return "nothing here is a token the table swaps"

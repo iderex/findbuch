@@ -198,6 +198,9 @@ files = [
     "tests/test_supply_chain.py",
     "tools/package.py",
     "tests/test_package.py",
+    "tools/mutation_sample.py",
+    "tests/test_mutation_sample.py",
+    "tests/test_mutation_survivors.py",
 ]
 
 # SymPy ships no type information and no stub package is published for it, so
