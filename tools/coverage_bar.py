@@ -142,6 +142,15 @@ REPORTED_ONLY: dict[str, str] = {
         "the fast numeric leg, for the same reason and with the same pair. It "
         "moves to the gated surface with #30 and #32"
     ),
+    "tools/package.py": (
+        "the artefact rather than a row. What it decides is whether the tree "
+        "builds, whether the wheel imports from somewhere that is not the "
+        "checkout, and whether the bill of materials validates, and none of "
+        "those answers can turn a wrong row green. Its own proof is the "
+        "self-test, which runs the import check against an environment nothing "
+        "was installed into and the validation against a document with a "
+        "required field removed, and a ratio over it would count the printing"
+    ),
     "tools/supply_chain.py": (
         "the dependency set rather than a row. What it decides is whether the "
         "lockfiles still bind and whether the resolved set carries an advisory, "

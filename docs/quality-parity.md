@@ -54,6 +54,16 @@ question it answers, whether the thing actually packages, is unchanged. Built by
 `Package (JPRM) / Generate SBOM` becomes `SBOM`. Same obligation, different
 generator for a different ecosystem. Built by #51.
 
+Those three names live in `.github/workflows/package.yml` and none of them is
+proposed as a required check here. Each resolves against the package index, so
+each can turn red on a day nothing in the tree changed, and #57's argument
+against requiring a name before it is known to be stable applies to them for the
+same reason it applies to the scan. What `package` does NOT answer for is worth
+having here rather than only in the workflow: it installs the wheel into a fresh
+environment and imports it, and it measures rather than refuses whether the row
+schema and the structure files travelled with that wheel. They do not, the
+measurement is printed by the job, and #84 is what turns it into a refusal.
+
 `CodeQL` stays `CodeQL`, and `Analyze (csharp)` becomes `Analyze (python)`. The
 language differs, the analysis does not. The actions analysis is kept as well,
 because this repository has workflows worth analysing. Built by #48.

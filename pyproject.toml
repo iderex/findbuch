@@ -69,6 +69,38 @@ scan = [
     "pip-audit>=2.9",
 ]
 
+# The build and bill-of-materials set, in its own set for the same reason the
+# scanner is in its own: it is installed into an environment of its own, it is
+# never part of what this project ships, and nothing it drags in behind itself
+# joins the runtime set. Regenerate with
+#
+#     pip-compile --generate-hashes --strip-extras --no-header --allow-unsafe \
+#         --extra package --output-file=requirements-package.lock pyproject.toml
+#
+# `--allow-unsafe` appears here and in none of the other three commands, and it
+# is what pins setuptools. Without it pip-compile leaves the build backend out
+# of the file and says so in a warning that a regenerated lock does not carry,
+# so the flag is written down rather than remembered.
+#
+# `build` is the PyPA front end for the backend already declared at the top of
+# this file, so the artefact a job produces is built through the same hooks a
+# consumer's `pip install .` would call rather than through a second procedure.
+# `cyclonedx-bom` writes the bill of materials and carries the CycloneDX schemas
+# with it, which is what lets tools/package.py validate the document it just
+# wrote without this repository holding a copy of somebody else's schema.
+#
+# `setuptools` is here as well as in `[build-system] requires`, and the
+# duplication is the point. `build` in its default mode makes an isolated
+# environment and resolves the backend from the index unpinned, so the one step
+# that turns this tree into an artefact would be the one step in the whole
+# project that installs something nothing hashed. tools/package.py passes
+# `--no-isolation` and the backend comes from the lockfile below instead.
+package = [
+    "build>=1.3",
+    "cyclonedx-bom>=7.1",
+    "setuptools>=77",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -164,6 +196,8 @@ files = [
     "tests/test_integrator.py",
     "tools/supply_chain.py",
     "tests/test_supply_chain.py",
+    "tools/package.py",
+    "tests/test_package.py",
 ]
 
 # SymPy ships no type information and no stub package is published for it, so
@@ -181,6 +215,18 @@ ignore_missing_imports = true
 # than leaving the reader to work out which of the annotations mean anything.
 [[tool.mypy.overrides]]
 module = ["mpmath.*"]
+ignore_missing_imports = true
+
+# cyclonedx-python-lib is in the `package` set and in neither the runtime set nor
+# the gate set, so the environment that runs the type checker does not have it
+# installed and the checker cannot see the import. The alternative is putting a
+# build tool into every run of the suite to satisfy a checker, which costs every
+# contributor a longer install for two lines of one tool. The two names behind
+# this override are used in one function, `validate_sbom` in tools/package.py,
+# so what `Any` costs is bounded by that function, and what the function decides
+# is proven by the fixture pair its self-test runs rather than by the checker.
+[[tool.mypy.overrides]]
+module = ["cyclonedx.*"]
 ignore_missing_imports = true
 
 # Coverage. Branch coverage, over what this project ships and not over the suite
