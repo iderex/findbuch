@@ -1,0 +1,12 @@
+# One character away from the suite next door: 10 became 11. The subject is
+# byte for byte the same file and the mutant is the same mutant, and a suite
+# that looks one past the boundary never sees `<` become `<=`.
+#
+# This is the near-miss the pair exists for. A neighbour that asserted nothing
+# at all would also let the mutant live, and it would prove only that an empty
+# suite kills nothing.
+
+import guard
+
+assert guard.admits(9) is True
+assert guard.admits(11) is False

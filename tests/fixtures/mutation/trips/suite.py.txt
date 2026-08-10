@@ -1,0 +1,8 @@
+# A suite that asserts the boundary. `<` loosened to `<=` moves the verdict at
+# exactly one value, and this is the suite that looks at it, so the mutant has
+# to die here.
+
+import guard
+
+assert guard.admits(9) is True
+assert guard.admits(10) is False

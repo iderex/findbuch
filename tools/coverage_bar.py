@@ -125,6 +125,14 @@ REPORTED_ONLY: dict[str, str] = {
         "this file. It measures, and a measuring instrument gating itself on "
         "its own measurement says nothing about either"
     ),
+    "tools/mutation_sample.py": (
+        "the mutation run over the surface above. It decides whether a mutant "
+        "of a gated module was killed, which is a statement about this suite "
+        "rather than about a row, and a ratio over it would be this surface "
+        "measuring the instrument pointed at it. Its own proof is the fixture "
+        "pair in tests/test_mutation_sample.py, where one tree's mutant has to "
+        "be killed and its one-change neighbour's has to survive"
+    ),
     "tools/run_tests.py": (
         "the suite's own entry point. It is the process this measurement runs "
         "in, so a ratio over it counts the act of measuring; whether it works "

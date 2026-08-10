@@ -1,0 +1,111 @@
+# Mutation testing over the verdict path (#55). Part of the parity mapping in
+# docs/quality-parity.md, where the target runs mutation testing over its whole
+# surface. Here it is pointed at one thing: the code that decides whether a row
+# is verified, for the same reason the coverage bar is scoped that way. A
+# checker that has quietly stopped refusing is this project's characteristic
+# failure, and it is invisible to every other check in the tree.
+#
+# WHY THIS IS NOT A JOB IN gate.yml. The seven check names there are an
+# interface #57 makes required on the default branch, and this is an eighth.
+# More to the point, this job runs the whole suite once per mutant, so a
+# contributor running `python tools/gate.py` before pushing would wait through
+# the suite once for every mutant in the sample. tools/coverage_bar.py is out of
+# the leg list for the same reason and this file follows it.
+#
+# THE SURFACE, THE SAMPLE SIZE AND THE SEED ARE NOT WRITTEN HERE.
+# tools/coverage_bar.py holds the surface and tools/mutation_sample.py holds the
+# other two, each with the reason for its value.
+# tests/test_mutation_sample.py refuses a copy of either number in this file. A
+# number written twice moves apart in silence, and a sample size that had drifted
+# would leave a contributor unable to reproduce the run this job reports.
+#
+# WHAT A GREEN CHECK HERE DOES NOT SAY. It says nothing about the mutants the
+# sample did not run. The tool prints the population, the sample and the
+# difference between them on every run, and the difference is the number that
+# keeps a partial run from reading as a complete one.
+#
+# THE FULL RUN IS NOT ON A PULL REQUEST. It is the manual trigger below, and it
+# is where the release checklist in #61 gets a whole-surface answer. A gate a
+# contributor cannot wait for is a gate that gets worked around, which is the
+# same argument docs/quality-parity.md makes for the verification sweep and the
+# coverage-guided fuzzing.
+#
+# Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
+# version comment, checkout with persist-credentials:false, permissions
+# read-only.
+name: Mutation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+    inputs:
+      every:
+        description: Run every mutant rather than the default sample
+        type: boolean
+        default: false
+
+# Read-only: the job reads the checked-out source, rewrites a module of it
+# inside the runner, puts it back, and pushes nothing anywhere.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref. The verdict depends only on the
+# source at that ref and on the seed, both of which are in the checkout.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutation-sample:
+    name: mutation sample
+    runs-on: ubuntu-latest
+    # The worst case is the run with the most to report: a killed mutant stops
+    # the suite at its first failure and a survivor costs a whole suite run. The
+    # sample size in tools/mutation_sample.py is chosen against this number, so
+    # the two move together and neither is a value on its own.
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing here pushes, so do not persist the token in .git/config.
+          persist-credentials: false
+
+      - name: Set up the pinned interpreter
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # .python-version is the one place the interpreter version is written,
+          # so this job reads it rather than repeating the number.
+          python-version-file: .python-version
+
+      - name: Install the locked runtime and gate sets
+        # Both locks, hashes and all. Which mutants survive depends on which
+        # tests run, and a resolution chosen by the index on the day would make
+        # a moved survivor impossible to tell from a changed one.
+        run: |
+          python -m pip install --require-hashes --requirement requirements.lock
+          python -m pip install --require-hashes --requirement requirements-dev.lock
+          python -m pip install --no-deps --editable .
+
+      - name: Prove the run can report a survivor before trusting that it found none
+        # The failure path first, and it is the whole value of this job. The
+        # pair here mutates one guard under two suites: one that asserts the
+        # boundary the mutant moves and has to kill it, and one a single
+        # character away that has to let it live. A tool that answered KILLED
+        # for everything would pass this job's other step and fail this one.
+        run: python tools/run_tests.py tests/test_mutation_sample.py -q
+
+      - name: Mutate the verdict path and ask whether any test notices
+        env:
+          # Through the environment rather than into the command line, so the
+          # expansion is not spliced into a shell.
+          EVERY: ${{ inputs.every }}
+        run: |
+          if [ "$EVERY" = "true" ]; then
+            python tools/mutation_sample.py --all
+          else
+            python tools/mutation_sample.py
+          fi
