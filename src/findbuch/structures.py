@@ -8,8 +8,8 @@ or so(3,1), and a row transcribed from a Kirchhoff paper and checked against e(3
 either fails or passes for the wrong reason. Neither outcome tells a reader
 anything.
 
-So the bracket table lives in `structures/`, this module reads it, and adding a
-structure is adding a file. Nothing here knows what e(3) is.
+So the bracket table lives in `src/findbuch/data/structures/`, this module reads
+it, and adding a structure is adding a file. Nothing here knows what e(3) is.
 
 WHAT IS DECLARED AND WHAT IS DERIVED. The table between generators is declared,
 every ordered pair of it, and a missing pair is refused rather than defaulting to
@@ -48,8 +48,14 @@ import sympy
 from findbuch.expression import SymbolTable, parse
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
-REPO_ROOT = PACKAGE_ROOT.parent.parent
-STRUCTURES = REPO_ROOT / "structures"
+
+# Under the package, for the reason given at the same constant in
+# findbuch.validation. The directory is `data/structures` rather than
+# `structures` beside this module, because a directory named after a module that
+# sits next to it is resolved by the import system in an order nobody should
+# have to know.
+DATA_ROOT = PACKAGE_ROOT / "data"
+STRUCTURES = DATA_ROOT / "structures"
 FAMILIES = "family"
 
 

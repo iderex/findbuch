@@ -92,6 +92,14 @@ class AMissingFileIsRefusedByIdentifier(unittest.TestCase):
         # The code is the identity and the message is for a person, so this
         # asserts that the message names the path and not how it is worded.
         self.assertIn(TRIPS.name, str(result.refusals[0]))
+        # Nothing was read, so no rule ran over it. This is asserted here rather
+        # than in a second test because of the paragraph above: it is one more
+        # claim about the same call. A result that reported a rule as evaluated
+        # on a file it never opened would be saying a check happened, and the
+        # mutation sample found that the flag on this path could be flipped with
+        # the whole suite green.
+        self.assertFalse(result.parameters_rule_evaluated)
+        self.assertFalse(result.expressions_rule_evaluated)
 
 
 class TheNeighbourOneChangeAwayIsAccepted(unittest.TestCase):
