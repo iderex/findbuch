@@ -18,11 +18,13 @@
 # any bytes at all. Both failures are invisible from the green tick, so the
 # things that must be refused are refused first, in the same job.
 #
-# WHAT A GREEN TICK HERE DOES NOT SAY, and the last step of `package` prints it
-# rather than leaving it to be inferred. The wheel carries no `schema/` and no
-# `structures/`, so an installed package imports and then cannot read either.
-# `package` MEASURES that and does not refuse it, because the repair is a change
-# to how the package is laid out rather than to a workflow, and it is #84.
+# WHAT THE SECOND NAME COVERS AND WHAT IT STILL DOES NOT, and the last step of
+# `package` prints the second half rather than leaving it to be inferred. The
+# wheel carries the row schema and the Poisson structure files, and the install
+# step asks the freshly installed package for both and refuses an answer that is
+# not `True`. That refusal arrived with #84, which moved the two directories
+# under the package; before it, this name went green over a wheel that imported
+# and could then read neither.
 #
 # Hardened per the workflow policy in zizmor.yml: actions SHA-pinned with a
 # version comment, checkout with persist-credentials:false, permissions
@@ -102,9 +104,9 @@ jobs:
       - name: Say what a green tick here does not cover
         if: always()
         run: |
-          echo "this job did NOT check that the schema and the structure files"
-          echo "travel with the wheel; the step above measures both and prints"
-          echo "what it found, and #84 is what makes that a refusal"
+          echo "the step above installs the WHEEL and asks it for its data. It"
+          echo "says nothing about the sdist: whether the suite runs from an"
+          echo "unpacked source archive is not measured by any job in this file"
 
   SBOM:
     name: SBOM

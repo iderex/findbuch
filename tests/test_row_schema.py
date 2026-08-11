@@ -14,6 +14,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
+from findbuch import validation
 from findbuch.validation import (
     SCHEMA_PATH,
     Refusal,
@@ -48,8 +49,25 @@ def messages(refusals: list[Refusal]) -> str:
 class TheSchemaIsPublishedAtAStablePath(unittest.TestCase):
     def test_the_schema_file_is_tracked_where_the_export_can_point_at_it(self) -> None:
         self.assertTrue(SCHEMA_PATH.is_file())
-        self.assertEqual(SCHEMA_PATH.parent, REPO_ROOT / "schema")
+        self.assertEqual(
+            SCHEMA_PATH.parent,
+            REPO_ROOT / "src" / "findbuch" / "data" / "schema",
+        )
         self.assertEqual(SCHEMA_PATH.name, "row-1.0.schema.json")
+
+    def test_the_path_is_addressed_through_the_package_and_not_through_the_root(
+        self,
+    ) -> None:
+        # The constant used to be built from the source file's grandparent, which
+        # is the checkout in a working copy and a directory beside
+        # `site-packages` in an installed one, so the schema was unreadable
+        # wherever the package was installed rather than checked out. Asserting
+        # the file exists says nothing about that, because in a checkout the old
+        # path existed too. What the property is, is that the schema sits under
+        # the directory the module itself is in. #84 measured the other case and
+        # tests/test_package_data.py runs the package away from this tree.
+        module = Path(validation.__file__).resolve().parent
+        self.assertEqual(SCHEMA_PATH.parents[2], module)
 
 
 class AWellFormedRowIsAccepted(unittest.TestCase):

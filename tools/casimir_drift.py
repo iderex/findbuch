@@ -27,10 +27,7 @@ import mpmath
 
 from findbuch.expression import ExpressionRefused, SymbolTable, parse
 from findbuch.integrator import IntegratorRefused, casimir_drift, integrate
-from findbuch.structures import StructureRefused, load_all
-
-REPO_ROOT = Path(__file__).resolve().parent.parent
-STRUCTURES = REPO_ROOT / "structures"
+from findbuch.structures import STRUCTURES, StructureRefused, load_all
 
 # How many significant digits a reported number is printed to. It decides what
 # a reader sees and nothing about what was computed; the run itself carries the
