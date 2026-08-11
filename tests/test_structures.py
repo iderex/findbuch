@@ -30,6 +30,7 @@ from pathlib import Path
 import sympy
 
 from findbuch.structures import (
+    STRUCTURES,
     PoissonStructure,
     StructureRefused,
     antisymmetry_failures,
@@ -42,7 +43,10 @@ from findbuch.structures import (
 from findbuch.validation import StructureRegistry
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-STRUCTURES = REPO_ROOT / "structures"
+# Imported from the module rather than rebuilt from the repository root. The two
+# spellings agreed while the files sat at the root and stopped agreeing the
+# moment they moved into the package, and the suite would have kept testing the
+# copy in the checkout while the package read somewhere else. #84.
 FAMILIES = STRUCTURES / "family"
 FAMILY_FILE = FAMILIES / "rigid-body.toml"
 

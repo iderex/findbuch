@@ -104,6 +104,25 @@ package = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# The two directories the package reads and that are not Python: the row schema
+# and the Poisson structure files. They sit under `src/findbuch/data/` and are
+# listed here because setuptools puts nothing but modules in a wheel unless it is
+# told to. #84 is where the absence was measured: the wheel imported and then
+# could not read either, the schema raising FileNotFoundError and the structure
+# registry returning empty, under which every row is refused as
+# `structure.unknown` for a fault in the package rather than in the row.
+#
+# The patterns are written per directory rather than as `data/**/*`, so a file
+# type that is added under `data/` later joins the wheel by being named here and
+# not by matching a glob nobody re-read. `family/` is its own line for the same
+# reason it is its own directory in findbuch.structures.
+[tool.setuptools.package-data]
+findbuch = [
+    "data/schema/*.json",
+    "data/structures/*.toml",
+    "data/structures/family/*.toml",
+]
+
 # The test runner, chosen in #15. The half of its configuration that pytest
 # reads from a file is here; the half it reads only from the environment is in
 # tools/run_tests.py, which is what every caller of the suite execs.
@@ -201,6 +220,7 @@ files = [
     "tools/mutation_sample.py",
     "tests/test_mutation_sample.py",
     "tests/test_mutation_survivors.py",
+    "tests/test_package_data.py",
 ]
 
 # SymPy ships no type information and no stub package is published for it, so

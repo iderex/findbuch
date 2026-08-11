@@ -1,0 +1,40 @@
+# What the source distribution carries beyond the package itself (#84).
+#
+# setuptools puts the modules found under `src/`, the readme, the licence file
+# and its own metadata into an sdist, and nothing else. An archive built without
+# the lines below carried `src/` and `tests/` and no `catalogue/`, no `tools/`,
+# no workflow files and none of the data the package reads, so the suite inside
+# it could not be run from it. That is the second half of what #84 measured.
+#
+# The package data itself is not listed here. It is declared once, in
+# `[tool.setuptools.package-data]` in pyproject.toml, and setuptools carries a
+# declared package-data file into both distributions from that one declaration.
+# A second spelling of the same list here is the drift this repository keeps
+# finding, so the sdist and the wheel agree by construction rather than by
+# somebody remembering both.
+#
+# WHAT IS STILL NOT RUNNABLE FROM AN UNPACKED ARCHIVE, and it is not a file this
+# list forgot. tests/test_type_check_coverage.py and tests/test_coverage_bar.py
+# derive what they are about from `git ls-files`, because a list of modules kept
+# by hand falls behind the tree in silence and neither test would notice. An
+# unpacked sdist is not a repository, so both refuse there whatever this file
+# carries, and the repair for that would be to replace the tree query with a
+# maintained list, which is the failure those two exist against.
+graft tests
+graft tools
+graft catalogue
+graft docs
+graft security
+graft .github
+include .python-version
+include .dockerignore
+include requirements.lock
+include requirements-dev.lock
+include requirements-package.lock
+include requirements-scan.lock
+
+# Build products and caches, in case one is sitting in the tree when the archive
+# is made. An sdist carrying a compiled module from somebody's working copy is a
+# distribution whose contents depend on the machine that built it.
+global-exclude *.py[cod]
+prune **/__pycache__

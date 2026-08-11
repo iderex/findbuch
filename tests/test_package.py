@@ -51,11 +51,24 @@ RUN_LINE = re.compile(r"^\s+run: (?P<command>(?!\|).+)$", re.MULTILINE)
 PROBE_OUTPUT = "\n".join(
     (
         "import-ok /somewhere/site-packages/findbuch/__init__.py",
-        "schema True /somewhere/site-packages/findbuch/schema/row-1.0.schema.json",
-        "structures True /somewhere/site-packages/findbuch/structures",
+        "schema True /somewhere/site-packages/findbuch/data/schema/row-1.0.schema.json",
+        "structures True /somewhere/site-packages/findbuch/data/structures",
         "registry 3",
     )
 )
+
+
+def probe_output(**changed: str) -> str:
+    """The good output with one line replaced, for the near-miss rows below.
+
+    One change at a time and never a hand-written bad output, so a row that
+    refuses is a row that refuses BECAUSE of the thing that was changed.
+    """
+    lines = []
+    for line in PROBE_OUTPUT.splitlines():
+        key = line.split(" ", 1)[0]
+        lines.append(f"{key} {changed[key]}" if key in changed else line)
+    return "\n".join(lines)
 
 
 def workflow_text() -> str:
@@ -147,7 +160,7 @@ class TheProbeAndTheReportAgreeOnWhatEachAnswerIsCalled(unittest.TestCase):
         self.assertIn('print("registry ', package.PROBE)
 
 
-class TheReportRefusesOnTheImportAndOnlyOnTheImport(unittest.TestCase):
+class TheReportRefusesOnTheImportAndOnWhatTheImportDoesNotAnswer(unittest.TestCase):
     def test_a_probe_that_failed_is_refused_by_name(self) -> None:
         code, printed = reported(package.Outcome(1, "ModuleNotFoundError: findbuch"))
         self.assertEqual(code, 1)
@@ -165,12 +178,39 @@ class TheReportRefusesOnTheImportAndOnlyOnTheImport(unittest.TestCase):
                 self.assertIn(name, printed)
         self.assertIn("structures the registry loaded: 3", printed)
 
-    def test_the_report_says_it_did_not_refuse_what_it_measured(self) -> None:
-        # The line that stops a green tick on this leg from being read as
-        # saying the package data travelled. #84 is what removes it.
-        _, printed = reported(package.Outcome(0, PROBE_OUTPUT))
-        self.assertIn("NOT REFUSED HERE", printed)
-        self.assertIn("#84", printed)
+    def test_a_data_path_the_package_cannot_reach_is_refused(self) -> None:
+        # One change from the output above, which is the whole reason this
+        # refuses for the reason it names rather than for any reason at all.
+        for key in ("schema", "structures"):
+            with self.subTest(key=key):
+                code, printed = reported(
+                    package.Outcome(0, probe_output(**{key: "False /nowhere"}))
+                )
+                self.assertEqual(code, 1)
+                self.assertIn("package.data-did-not-travel", printed)
+
+    def test_an_empty_registry_is_refused_although_it_raised_nothing(self) -> None:
+        # The half that does not announce itself. Every path answers True and
+        # the registry is still empty, so the import is clean, the schema is
+        # readable, and every row would be refused as structure.unknown.
+        code, printed = reported(package.Outcome(0, probe_output(registry="0")))
+        self.assertEqual(code, 1)
+        self.assertIn("package.registry-empty", printed)
+
+    def test_an_answer_the_probe_never_gave_is_refused_rather_than_skipped(
+        self,
+    ) -> None:
+        # A key renamed on one side and not the other. `not measured` used to
+        # print beside a zero exit status, which reads as a question that was
+        # asked and answered well.
+        missing = "\n".join(
+            line
+            for line in PROBE_OUTPUT.splitlines()
+            if not line.startswith("structures ")
+        )
+        code, printed = reported(package.Outcome(0, missing))
+        self.assertEqual(code, 1)
+        self.assertIn("not measured", printed)
 
 
 if __name__ == "__main__":

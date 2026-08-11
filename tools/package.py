@@ -19,17 +19,18 @@ the wheel contains.
 
 WHAT THE IMPORT DOES NOT ANSWER, and this is the sentence to read twice. The
 package reads two directories that are not Python: the row schema and the
-Poisson structure files. Both are addressed today through a path computed from
-the source file's grandparent, which is the repository root in a checkout and a
-directory beside `site-packages` in an installed environment, and neither
-directory is in the wheel. So an installed package imports and then cannot read
-its own schema, and `findbuch.structures.load_all()` returns an empty registry
-rather than raising, under which every row is refused as `structure.unknown` for
-a fault in the package. `install` MEASURES both and PRINTS what it found. It
-does not refuse them, because the repair is a change to how the package is laid
-out rather than to this file, and it is #84. What is here is the measurement, so
-that the repair has something to move and a green tick on this leg is not read
-as saying the data travelled.
+Poisson structure files. An import says nothing about either, so `install` asks
+each one in the fresh environment and REFUSES an answer that is not the one it
+wanted. The registry is asked for its size rather than for an exception, because
+an empty registry is a legal value: `load_all()` returns it without raising, and
+under it every row is refused as `structure.unknown` for a fault in the package
+rather than in the row. That refusal names the row, and a reader chasing it goes
+to the row file and finds nothing wrong with it.
+
+This leg measured both and refused neither until #84, which moved the two
+directories under the package and turned the measurement into the refusal below.
+The fault and its repair are two changes on purpose, so the number that was
+printed before the repair and the number printed after it are both in the record.
 
 THE THIRD IS WHAT THE ARTEFACT IS MADE OF. `sbom` writes a CycloneDX document
 from `requirements.lock`, which is the resolved runtime set rather than the
@@ -91,9 +92,9 @@ SBOM_TRIPS = SBOM_FIXTURES / "trips.json"
 # good document or accept a field the declared version does not have.
 SCHEMA_VERSION = "1.6"
 
-# What the installed package reads and is not Python. Each entry is measured by
-# `install` in the fresh environment, and the reason it is measured rather than
-# assumed is the module docstring above.
+# What the installed package reads and is not Python. Each entry is asked for in
+# the fresh environment and each answer is refused unless it is `True`, and the
+# reason it is asked rather than assumed is the module docstring above.
 PACKAGE_DATA: tuple[tuple[str, str, str], ...] = (
     ("schema", "the row schema", "findbuch.validation.SCHEMA_PATH"),
     ("structures", "the Poisson structure files", "findbuch.structures.STRUCTURES"),
@@ -266,7 +267,13 @@ def install() -> int:
 
 
 def report_probe(probe: Outcome) -> int:
-    """Read the probe back: refuse on the import, measure and print the rest."""
+    """Read the probe back: refuse on the import, then on what it could not reach.
+
+    An answer this function did not receive is refused rather than skipped. A
+    key renamed on one side and not the other would otherwise leave a question
+    unasked and the leg green, which is the shape the whole file is written
+    against.
+    """
     print(probe.output)
     if probe.refused:
         print(Refusal("package.import-failed", "the installed package did not import"))
@@ -278,15 +285,32 @@ def report_probe(probe: Outcome) -> int:
         if " " in line
     }
     print("=== what the installed package can reach, measured rather than assumed")
+    refusals: list[Refusal] = []
     for key, description, name in PACKAGE_DATA:
-        print(f"  {description} ({name}): {answers.get(key, 'not measured')}")
+        answer = answers.get(key, "not measured")
+        print(f"  {description} ({name}): {answer}")
+        if answer.split(" ", 1)[0] != "True":
+            refusals.append(
+                Refusal(
+                    "package.data-did-not-travel",
+                    f"{description} is not readable from the installed package; "
+                    f"{name} answered '{answer}'",
+                )
+            )
     loaded = answers.get("registry", "not measured")
     print(f"  structures the registry loaded: {loaded}")
-    print(
-        "  NOT REFUSED HERE. #84 carries the repair; this leg measures and this "
-        "line is why a green tick above does not say the data travelled."
-    )
-    return 0
+    if loaded in {"0", "not measured"}:
+        refusals.append(
+            Refusal(
+                "package.registry-empty",
+                f"the structure registry loaded {loaded} structures; an empty "
+                f"registry does not raise, and under it every row is refused as "
+                f"structure.unknown for a fault in the package",
+            )
+        )
+    for refusal in refusals:
+        print(refusal)
+    return 1 if refusals else 0
 
 
 def write_sbom() -> int:

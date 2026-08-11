@@ -13,9 +13,10 @@ as well as here.
 
 Two halves, and they refuse different things.
 
-The published schema, `schema/row-1.0.schema.json`, carries everything one
-document can decide about itself: which fields are required, the identifier
-form, the three validity kinds, the three roles, at least one provenance entry.
+The published schema, `src/findbuch/data/schema/row-1.0.schema.json`, carries
+everything one document can decide about itself: which fields are required, the
+identifier form, the three validity kinds, the three roles, at least one
+provenance entry.
 
 This module carries what a single document cannot decide about itself. Whether
 the structure it names exists is a question about another file. Whether its
@@ -39,8 +40,15 @@ import jsonschema
 from findbuch.expression import SymbolTable, parse_all
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
-REPO_ROOT = PACKAGE_ROOT.parent.parent
-SCHEMA_PATH = REPO_ROOT / "schema" / "row-1.0.schema.json"
+
+# Addressed through the package and never through the repository root. The path
+# used to be the source file's grandparent, which is the checkout in a working
+# copy and a directory beside `site-packages` in an installed one, so the schema
+# was unreadable everywhere the package was installed rather than checked out.
+# It is data the package carries, so it sits under the package and the constant
+# is one hop from `__file__`. #84 is where that was measured.
+DATA_ROOT = PACKAGE_ROOT / "data"
+SCHEMA_PATH = DATA_ROOT / "schema" / "row-1.0.schema.json"
 
 # Identifier-shaped tokens that are not symbols of a row. This is deliberately
 # short and deliberately crude: it exists for one shape rule below and it is NOT

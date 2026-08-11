@@ -19,6 +19,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from findbuch.structures import STRUCTURES  # noqa: E402
 from findbuch.validation import (  # noqa: E402
     StructureRegistry,
     validate_catalogue,
@@ -28,7 +29,12 @@ from findbuch.validation import (  # noqa: E402
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate the catalogue rows.")
     parser.add_argument("--catalogue", type=Path, default=REPO_ROOT / "catalogue")
-    parser.add_argument("--structures", type=Path, default=REPO_ROOT / "structures")
+    # The default comes from the module that reads the directory rather than
+    # from a second path built here. The two agreed while the files sat at the
+    # repository root; after #84 moved them into the package, a second spelling
+    # would have this leg checking rows against a directory the package does not
+    # use.
+    parser.add_argument("--structures", type=Path, default=STRUCTURES)
     arguments = parser.parse_args(argv)
 
     registry = (
@@ -44,8 +50,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     if not registry.identifiers:
         print(
-            "catalogue-schema: the structure registry is empty, so every row "
-            "naming a structure would be refused; the structures land in #25"
+            f"catalogue-schema: the structure registry is empty, so every row "
+            f"naming a structure would be refused as structure.unknown for a "
+            f"reason that is not about the row; nothing was read at "
+            f"'{arguments.structures}'"
         )
     if not results:
         print("catalogue-schema: no row has been through this check yet")
