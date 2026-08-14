@@ -74,4 +74,4 @@ required rather than defaulted. A default would be e(3), and e(3) is exactly the
 wrong answer for the family most likely to be transcribed carelessly.
 
 Adding a fourth structure later is adding a file and its three tests, and
-touches no checker code. That is the property this record exists to protect.
+touches no checker code. That is the property the decision protects.
