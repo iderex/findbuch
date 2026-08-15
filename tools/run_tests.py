@@ -10,25 +10,24 @@ three callers exec this file.
     python tools/run_tests.py tests/x.py    one module, and anything else pytest
                                             accepts is passed through
 
-IN PROCESS, NOT IN A SUBPROCESS. tools/coverage_bar.py runs this file under
-`coverage run`, and coverage measures the process it starts. A launcher that
-handed the work to a child would leave the measurement counting the launcher and
-reporting nothing about the suite, which is a coverage number that looks like a
-coverage number and is not one.
+The suite runs in this process and never in a subprocess.
+tools/coverage_bar.py runs this file under `coverage run`, and coverage measures
+the process it starts. A launcher that handed the work to a child would leave the
+measurement counting the launcher and reporting nothing about the suite, which is
+a coverage number that looks like a coverage number and is not one.
 
-WHY THE ENVIRONMENT IS SET HERE RATHER THAN IN A CONFIGURATION FILE. pytest
+The environment is set here because no configuration file can set it. pytest
 loads every plugin that any installed distribution advertises through an entry
-point, before it collects a single test. That is code this repository did not
-ask for, running inside the run that decides whether the gate is green, and it
-is chosen by whatever else happens to be in the environment. It is switched off
-by an environment variable and by nothing else: pyproject.toml has no setting
-that turns it off, which is why this file exists rather than a line of
-configuration. What the suite gives up is that a plugin cannot be installed into
-a checkout and picked up without being asked for, which is the point.
+point, before it collects a single test. That is code this repository did not ask
+for, running inside the run that decides whether the gate is green, and it is
+chosen by whatever else happens to be in the environment. One environment
+variable switches it off and nothing else does; pyproject.toml carries no setting
+that turns it off. What the suite gives up is that a plugin cannot be installed
+into a checkout and picked up without being asked for, which is the point.
 
 The rest of the configuration is in pyproject.toml, under
-`[tool.pytest.ini_options]`, because that part pytest does read from a file and a
-second home for it here would be the drift this file exists against.
+`[tool.pytest.ini_options]`, because that part pytest does read from a file, and
+a second home for it here is the drift this launcher was built against.
 """
 
 from __future__ import annotations
