@@ -7,3 +7,9 @@ the architecture is written down there with its reasons before the code
 that depends on it exists.
 
 See [NOTICE.md](NOTICE.md) for the intended-use notice.
+
+## License
+
+AGPL-3.0, copyright 2026 Nils Lehnen.
+
+The full text is in [LICENSE](LICENSE).
